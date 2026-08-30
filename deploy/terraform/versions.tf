@@ -1,11 +1,15 @@
 terraform {
   required_version = ">= 1.6"
   required_providers {
-    aws        = { source = "hashicorp/aws", version = "~> 5.70" }
-    kubernetes = { source = "hashicorp/kubernetes", version = "~> 2.33" }
-    helm       = { source = "hashicorp/helm", version = "~> 2.16" }
-    random     = { source = "hashicorp/random", version = "~> 3.6" }
-    tls        = { source = "hashicorp/tls", version = "~> 4.0" }
+    aws = { source = "hashicorp/aws", version = "~> 5.70" }
+    # No kubernetes or helm provider, deliberately. Terraform owns AWS; Helm
+    # owns Kubernetes. Terraform's helm provider needs cluster credentials at
+    # PLAN time, which is a chicken-and-egg on first apply and a much worse
+    # failure on destroy, where it tries to reach a cluster Terraform has
+    # already deleted. The in-cluster controllers are installed by
+    # `make -C deploy addons` instead.
+    random = { source = "hashicorp/random", version = "~> 3.6" }
+    tls    = { source = "hashicorp/tls", version = "~> 4.0" }
   }
 
   # State stays local on purpose for a demo account. In a real deployment this

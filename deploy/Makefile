@@ -63,6 +63,13 @@ validate: init ## Validate Terraform and every Kubernetes manifest, no cluster n
 	@# `make validate` that quietly reformatted would still fail the pipeline.
 	@terraform -chdir=terraform fmt -check -recursive -diff
 	@$(TF) validate
+	@# tflint catches what `terraform validate` does not: unpinned providers,
+	@# modules that inherit versions instead of declaring them, invalid instance
+	@# types. Skipped with a note rather than silently if it is not installed,
+	@# because CI runs it either way.
+	@command -v tflint >/dev/null \
+	  && (cd terraform && tflint --recursive) \
+	  || echo "  (tflint not installed — brew install tflint; CI runs it regardless)"
 	@kubectl kustomize k8s/overlays/aws \
 	  | kubeconform -strict -summary -kubernetes-version 1.31.0 -ignore-missing-schemas
 
