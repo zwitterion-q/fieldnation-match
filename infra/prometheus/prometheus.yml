@@ -1,0 +1,44 @@
+# Scrape interval is deliberately short. These are demo-scale targets and the
+# point is to watch a retry ladder fill and drain in real time -- at 30s you
+# would miss the 5-second tier entirely.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs: [{ targets: ['localhost:9090'] }]
+
+  # RabbitMQ's own plugin. Per-queue detail is not exposed by the default
+  # endpoint, so we scrape /metrics/detailed for the queue-level series that
+  # make the retry ladder visible.
+  - job_name: rabbitmq
+    static_configs: [{ targets: ['rabbitmq:15692'] }]
+
+  - job_name: rabbitmq-detailed
+    metrics_path: /metrics/detailed
+    params:
+      family: [queue_coarse_metrics, queue_consumer_count, channel_metrics]
+    static_configs: [{ targets: ['rabbitmq:15692'] }]
+
+  - job_name: postgres
+    static_configs:
+      - targets: ['pg-exporter-workorders:9187']
+        labels: { database: workorders }
+      - targets: ['pg-exporter-payments:9187']
+        labels: { database: payments }
+
+  # RED metrics from the services themselves -- rate, errors, duration.
+  # Infrastructure metrics tell you a queue is deep; these tell you why.
+  - job_name: services
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['identity:8000']
+        labels: { service: identity }
+      - targets: ['work-orders:8000']
+        labels: { service: work-orders }
+      - targets: ['payments:8000']
+        labels: { service: payments }

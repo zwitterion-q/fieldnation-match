@@ -1,0 +1,49 @@
+# Alerting on symptoms rather than causes. "The parking lot is non-empty" is a
+# symptom a human must act on; "CPU is high" usually is not.
+groups:
+  - name: fieldnation-slo
+    rules:
+      # --- recording rules: the SLIs -------------------------------------
+      - record: fn:http_request_rate5m
+        expr: sum by (service) (rate(http_requests_total[5m]))
+
+      - record: fn:http_error_ratio5m
+        expr: |
+          sum by (service) (rate(http_requests_total{status=~"5.."}[5m]))
+          / clamp_min(sum by (service) (rate(http_requests_total[5m])), 0.001)
+
+      - record: fn:http_latency_p95
+        expr: histogram_quantile(0.95,
+                sum by (service, le) (rate(http_request_duration_seconds_bucket[5m])))
+
+      # --- alerts ---------------------------------------------------------
+      - alert: ParkingLotNonEmpty
+        expr: rabbitmq_detailed_queue_messages{queue=~"q\\..*parking-lot"} > 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Messages parked in {{ $labels.queue }}"
+          description: "A message exhausted the retry ladder. Nothing consumes the
+            parking lot by design -- this needs a human."
+
+      - alert: RetryLadderBackingUp
+        expr: sum(rabbitmq_detailed_queue_messages{queue=~"q\\..*retry\\.r3"}) > 5
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "Messages reaching the 5-minute retry tier"
+          description: "Reaching r3 means two earlier retries already failed."
+
+      - alert: ConsumerAbsent
+        expr: rabbitmq_detailed_queue_consumers{queue=~"q\\.(payments|workorders)\\..*"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "No consumer on {{ $labels.queue }}"
+
+      - alert: ErrorBudgetBurn
+        expr: fn:http_error_ratio5m > 0.01
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }} error ratio above the 99% SLO"

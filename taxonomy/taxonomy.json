@@ -1,0 +1,818 @@
+[
+ {
+  "attribute_type": "skill",
+  "slug": "pos-installation",
+  "canonical_name": "POS Installation",
+  "description": "",
+  "aliases": [
+   "point of sale",
+   "pos install",
+   "register install",
+   "checkout terminal",
+   "pos terminal"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "self-checkout",
+  "canonical_name": "Self-Checkout Systems",
+  "description": "",
+  "aliases": [
+   "sco",
+   "self checkout",
+   "scan and go",
+   "self-serve checkout"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "structured-cabling",
+  "canonical_name": "Structured Cabling",
+  "description": "",
+  "aliases": [
+   "cat5",
+   "cat6",
+   "cat6a",
+   "cable pulling",
+   "low voltage cabling",
+   "data cabling",
+   "cable install"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "fiber-optic",
+  "canonical_name": "Fiber Optic Splicing",
+  "description": "",
+  "aliases": [
+   "fiber splice",
+   "fusion splicing",
+   "otdr",
+   "fibre optic",
+   "fiber termination"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "network-configuration",
+  "canonical_name": "Network Configuration",
+  "description": "",
+  "aliases": [
+   "router config",
+   "switch config",
+   "vlan",
+   "network setup",
+   "lan setup",
+   "firewall config"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "wifi-survey",
+  "canonical_name": "WiFi Site Survey",
+  "description": "",
+  "aliases": [
+   "wireless survey",
+   "heat map",
+   "ap placement",
+   "access point survey",
+   "predictive survey"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "cctv-install",
+  "canonical_name": "CCTV & Surveillance",
+  "description": "",
+  "aliases": [
+   "security camera",
+   "video surveillance",
+   "nvr",
+   "dvr install",
+   "ip camera"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "access-control",
+  "canonical_name": "Access Control Systems",
+  "description": "",
+  "aliases": [
+   "badge reader",
+   "card reader",
+   "door controller",
+   "electronic locks"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "av-installation",
+  "canonical_name": "Audio Visual Installation",
+  "description": "",
+  "aliases": [
+   "av install",
+   "projector mount",
+   "display mount",
+   "video wall",
+   "conference room av"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "digital-signage",
+  "canonical_name": "Digital Signage",
+  "description": "",
+  "aliases": [
+   "menu board",
+   "led display",
+   "signage install",
+   "digital menu"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "server-rack",
+  "canonical_name": "Server & Rack Installation",
+  "description": "",
+  "aliases": [
+   "rack and stack",
+   "server install",
+   "data center install",
+   "rack mount"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "desktop-breakfix",
+  "canonical_name": "Desktop Break-Fix",
+  "description": "",
+  "aliases": [
+   "pc repair",
+   "laptop repair",
+   "workstation repair",
+   "hardware swap",
+   "depot repair"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "printer-repair",
+  "canonical_name": "Printer & MFP Service",
+  "description": "",
+  "aliases": [
+   "copier repair",
+   "mfp service",
+   "printer service",
+   "kiosk printer"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "atm-service",
+  "canonical_name": "ATM Servicing",
+  "description": "",
+  "aliases": [
+   "cash machine",
+   "atm repair",
+   "atm install"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "kiosk-install",
+  "canonical_name": "Kiosk Installation",
+  "description": "",
+  "aliases": [
+   "self-service kiosk",
+   "ordering kiosk",
+   "kiosk deploy"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "electrical",
+  "canonical_name": "Electrical Work",
+  "description": "",
+  "aliases": [
+   "conduit",
+   "circuit",
+   "electrical install",
+   "110v",
+   "220v",
+   "panel work"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "low-voltage",
+  "canonical_name": "Low Voltage Systems",
+  "description": "",
+  "aliases": [
+   "lv wiring",
+   "low volt",
+   "class 2 wiring"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "hvac",
+  "canonical_name": "HVAC Service",
+  "description": "",
+  "aliases": [
+   "heating",
+   "air conditioning",
+   "hvac repair",
+   "refrigeration",
+   "rtu"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "ev-charger",
+  "canonical_name": "EV Charger Installation",
+  "description": "",
+  "aliases": [
+   "ev charging",
+   "evse",
+   "charging station"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "telecom-voip",
+  "canonical_name": "Telecom & VoIP",
+  "description": "",
+  "aliases": [
+   "voip",
+   "pbx",
+   "phone system",
+   "sip",
+   "telephony"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "satellite-install",
+  "canonical_name": "Satellite & Antenna",
+  "description": "",
+  "aliases": [
+   "vsat",
+   "dish install",
+   "antenna alignment"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "drive-thru",
+  "canonical_name": "Drive-Thru Systems",
+  "description": "",
+  "aliases": [
+   "headset system",
+   "order confirmation board",
+   "drive through"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "cash-handling",
+  "canonical_name": "Cash Handling Equipment",
+  "description": "",
+  "aliases": [
+   "cash recycler",
+   "safe install",
+   "currency counter"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "scale-calibration",
+  "canonical_name": "Scales & Calibration",
+  "description": "",
+  "aliases": [
+   "weighing scale",
+   "scale service",
+   "calibration"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "appliance-repair",
+  "canonical_name": "Commercial Appliance Repair",
+  "description": "",
+  "aliases": [
+   "commercial kitchen",
+   "fryer repair",
+   "refrigeration unit"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "troubleshooting",
+  "canonical_name": "Diagnostics & Troubleshooting",
+  "description": "",
+  "aliases": [
+   "fault finding",
+   "root cause",
+   "diagnose"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "cable-termination",
+  "canonical_name": "Cable Termination & Testing",
+  "description": "",
+  "aliases": [
+   "punch down",
+   "keystone",
+   "fluke test",
+   "certification testing"
+  ]
+ },
+ {
+  "attribute_type": "skill",
+  "slug": "mounting-rigging",
+  "canonical_name": "Mounting & Rigging",
+  "description": "",
+  "aliases": [
+   "wall mount",
+   "ceiling mount",
+   "bracket install",
+   "lift operation"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "retail-rollout",
+  "canonical_name": "Multi-Site Retail Rollouts",
+  "description": "",
+  "aliases": [
+   "store rollout",
+   "chain deployment",
+   "multi-site rollout"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "enterprise-networking",
+  "canonical_name": "Enterprise Networking",
+  "description": "",
+  "aliases": [
+   "corporate network",
+   "enterprise lan",
+   "branch networking"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "data-center",
+  "canonical_name": "Data Centre Operations",
+  "description": "",
+  "aliases": [
+   "datacenter",
+   "colo",
+   "server room"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "commercial-construction",
+  "canonical_name": "Commercial Construction Sites",
+  "description": "",
+  "aliases": [
+   "new build",
+   "construction site",
+   "fit-out"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "healthcare-facility",
+  "canonical_name": "Healthcare Facilities",
+  "description": "",
+  "aliases": [
+   "hospital",
+   "clinic",
+   "medical facility"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "restaurant-qsr",
+  "canonical_name": "Restaurant & QSR Environments",
+  "description": "",
+  "aliases": [
+   "quick service",
+   "fast food",
+   "food service"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "warehouse-logistics",
+  "canonical_name": "Warehouse & Logistics",
+  "description": "",
+  "aliases": [
+   "distribution centre",
+   "fulfilment centre",
+   "3pl"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "field-dispatch",
+  "canonical_name": "Dispatch-Based Field Service",
+  "description": "",
+  "aliases": [
+   "dispatch",
+   "route based",
+   "mobile technician"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "customer-facing",
+  "canonical_name": "Customer-Facing Site Work",
+  "description": "",
+  "aliases": [
+   "client site",
+   "onsite customer",
+   "end user support"
+  ]
+ },
+ {
+  "attribute_type": "experience",
+  "slug": "after-hours",
+  "canonical_name": "After-Hours & Overnight Work",
+  "description": "",
+  "aliases": [
+   "overnight",
+   "third shift",
+   "night install",
+   "after hours"
+  ]
+ },
+ {
+  "attribute_type": "experience_level",
+  "slug": "entry",
+  "canonical_name": "Entry Level",
+  "description": "",
+  "aliases": [
+   "junior",
+   "apprentice",
+   "trainee",
+   "entry-level",
+   "helper",
+   "0-2 years"
+  ]
+ },
+ {
+  "attribute_type": "experience_level",
+  "slug": "intermediate",
+  "canonical_name": "Intermediate",
+  "description": "",
+  "aliases": [
+   "mid level",
+   "mid-level",
+   "experienced",
+   "2-5 years",
+   "journeyman"
+  ]
+ },
+ {
+  "attribute_type": "experience_level",
+  "slug": "senior",
+  "canonical_name": "Senior",
+  "description": "",
+  "aliases": [
+   "senior level",
+   "5+ years",
+   "advanced",
+   "expert technician"
+  ]
+ },
+ {
+  "attribute_type": "experience_level",
+  "slug": "lead",
+  "canonical_name": "Lead / Master",
+  "description": "",
+  "aliases": [
+   "lead technician",
+   "master",
+   "supervisor",
+   "crew lead",
+   "foreman"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "retail",
+  "canonical_name": "Retail",
+  "description": "",
+  "aliases": [
+   "store",
+   "supermarket",
+   "grocery",
+   "big box",
+   "convenience"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "restaurant",
+  "canonical_name": "Restaurant & Hospitality",
+  "description": "",
+  "aliases": [
+   "qsr",
+   "hotel",
+   "food and beverage",
+   "hospitality"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "healthcare",
+  "canonical_name": "Healthcare",
+  "description": "",
+  "aliases": [
+   "hospital",
+   "medical",
+   "clinical",
+   "pharmacy"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "financial",
+  "canonical_name": "Banking & Financial Services",
+  "description": "",
+  "aliases": [
+   "bank",
+   "credit union",
+   "fintech",
+   "branch banking"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "telecom",
+  "canonical_name": "Telecommunications",
+  "description": "",
+  "aliases": [
+   "carrier",
+   "isp",
+   "broadband",
+   "cable provider"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "manufacturing",
+  "canonical_name": "Manufacturing & Industrial",
+  "description": "",
+  "aliases": [
+   "factory",
+   "plant",
+   "industrial",
+   "production floor"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "logistics",
+  "canonical_name": "Logistics & Warehousing",
+  "description": "",
+  "aliases": [
+   "shipping",
+   "distribution",
+   "supply chain"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "education",
+  "canonical_name": "Education",
+  "description": "",
+  "aliases": [
+   "school",
+   "university",
+   "campus",
+   "k-12"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "government",
+  "canonical_name": "Government & Public Sector",
+  "description": "",
+  "aliases": [
+   "municipal",
+   "federal",
+   "state agency",
+   "public sector"
+  ]
+ },
+ {
+  "attribute_type": "industry",
+  "slug": "energy-utilities",
+  "canonical_name": "Energy & Utilities",
+  "description": "",
+  "aliases": [
+   "utility",
+   "power company",
+   "renewables"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "installation",
+  "canonical_name": "New Installation",
+  "description": "",
+  "aliases": [
+   "install",
+   "new build install",
+   "greenfield"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "deployment",
+  "canonical_name": "Rollout & Deployment",
+  "description": "",
+  "aliases": [
+   "rollout",
+   "mass deployment",
+   "refresh project"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "break-fix",
+  "canonical_name": "Break-Fix Repair",
+  "description": "",
+  "aliases": [
+   "repair",
+   "emergency call",
+   "reactive maintenance",
+   "service call"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "preventive-maintenance",
+  "canonical_name": "Preventive Maintenance",
+  "description": "",
+  "aliases": [
+   "pm visit",
+   "scheduled maintenance",
+   "routine service"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "site-survey",
+  "canonical_name": "Site Survey & Audit",
+  "description": "",
+  "aliases": [
+   "survey",
+   "site audit",
+   "pre-install walk",
+   "assessment"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "deinstallation",
+  "canonical_name": "De-Installation & Decommission",
+  "description": "",
+  "aliases": [
+   "removal",
+   "decommission",
+   "teardown",
+   "de-install"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "staging-config",
+  "canonical_name": "Staging & Configuration",
+  "description": "",
+  "aliases": [
+   "pre-staging",
+   "depot config",
+   "imaging",
+   "provisioning"
+  ]
+ },
+ {
+  "attribute_type": "experience_type",
+  "slug": "upgrade",
+  "canonical_name": "Upgrade & Migration",
+  "description": "",
+  "aliases": [
+   "swap out",
+   "migration",
+   "hardware refresh",
+   "upgrade"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "comptia-a-plus",
+  "canonical_name": "CompTIA A+",
+  "description": "",
+  "aliases": [
+   "a+",
+   "comptia a"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "comptia-network-plus",
+  "canonical_name": "CompTIA Network+",
+  "description": "",
+  "aliases": [
+   "network+",
+   "net+"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "bicsi",
+  "canonical_name": "BICSI Certified",
+  "description": "",
+  "aliases": [
+   "bicsi installer",
+   "rcdd"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "osha-10",
+  "canonical_name": "OSHA 10",
+  "description": "",
+  "aliases": [
+   "osha10",
+   "osha 10-hour"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "osha-30",
+  "canonical_name": "OSHA 30",
+  "description": "",
+  "aliases": [
+   "osha30",
+   "osha 30-hour"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "low-voltage-license",
+  "canonical_name": "Low Voltage License",
+  "description": "",
+  "aliases": [
+   "lv license",
+   "class b license"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "epa-608",
+  "canonical_name": "EPA 608",
+  "description": "",
+  "aliases": [
+   "epa608",
+   "refrigerant certification"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "fiber-cert",
+  "canonical_name": "Fiber Optic Certification",
+  "description": "",
+  "aliases": [
+   "foa",
+   "cfot"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "ccna",
+  "canonical_name": "Cisco CCNA",
+  "description": "",
+  "aliases": [
+   "ccna",
+   "cisco certified"
+  ]
+ },
+ {
+  "attribute_type": "certification",
+  "slug": "electrical-license",
+  "canonical_name": "Electrical License",
+  "description": "",
+  "aliases": [
+   "licensed electrician",
+   "journeyman electrician"
+  ]
+ }
+]

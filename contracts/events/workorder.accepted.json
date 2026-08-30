@@ -1,0 +1,23 @@
+{
+  "type": "workorder.accepted",
+  "version": 1,
+  "description": "Technician accepted. Escrow hold is confirmed and the work order is assigned.",
+  "envelope": {
+    "id": "uuid",
+    "type": "workorder.accepted",
+    "version": 1,
+    "occurred_at": "iso8601",
+    "correlation_id": "uuid",
+    "causation_id": "uuid|null",
+    "actor": {
+      "id": "int",
+      "role": "string"
+    }
+  },
+  "payload": {
+    "work_order_id": "int",
+    "technician_id": "int",
+    "hirer_id": "int",
+    "accepted_at": "iso8601"
+  }
+}

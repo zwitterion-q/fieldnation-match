@@ -1,0 +1,265 @@
+name: fieldnation-match
+
+services:
+  db-workorders:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fn
+      POSTGRES_PASSWORD: fn
+      POSTGRES_DB: workorders
+    ports: ["55432:5432"]
+    volumes:
+      - wo-data:/var/lib/postgresql/data
+      - ./db/workorders:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fn -d workorders"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  db-identity:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fn
+      POSTGRES_PASSWORD: fn
+      POSTGRES_DB: identity
+    ports: ["55434:5432"]
+    volumes:
+      - identity-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fn -d identity"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  db-payments:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fn
+      POSTGRES_PASSWORD: fn
+      POSTGRES_DB: payments
+    ports: ["55435:5432"]
+    volumes:
+      - payments-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fn -d payments"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  db-technicians:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fn
+      POSTGRES_PASSWORD: fn
+      POSTGRES_DB: technicians
+    ports: ["55433:5432"]
+    volumes:
+      - tech-data:/var/lib/postgresql/data
+      - ./db/technicians:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fn -d technicians"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    hostname: fn-rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: fn
+      RABBITMQ_DEFAULT_PASS: fn
+    ports:
+      - "55672:5672"     # AMQP
+      - "45672:15672"    # management UI
+      - "45692:15692"    # prometheus metrics
+    volumes:
+      - ./infra/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infra/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - rabbit-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    ports: ["56333:6333"]
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./api
+    environment:
+      WO_DSN: postgresql://fn:fn@db-workorders:5432/workorders
+      TECH_DSN: postgresql://fn:fn@db-technicians:5432/technicians
+      QDRANT_URL: http://qdrant:6333
+    ports: ["58000:8000"]
+    depends_on:
+      db-workorders: {condition: service_healthy}
+      db-technicians: {condition: service_healthy}
+      qdrant: {condition: service_healthy}
+
+  ingest:
+    build: ./ingest
+    environment:
+      WO_DSN: postgresql://fn:fn@db-workorders:5432/workorders
+      TECH_DSN: postgresql://fn:fn@db-technicians:5432/technicians
+      QDRANT_URL: http://qdrant:6333
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+    depends_on:
+      db-workorders: {condition: service_healthy}
+      db-technicians: {condition: service_healthy}
+      qdrant: {condition: service_healthy}
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+      - ./taxonomy:/app/taxonomy:ro
+    profiles: ["tools"]
+
+  identity:
+    build: ./services/identity
+    environment:
+      IDENTITY_DSN: postgresql://fn:fn@db-identity:5432/identity
+      JWT_SECRET: ${JWT_SECRET:-fn-dev-secret-change-me}
+      SERVICE_NAME: identity
+      PORT: 8000
+    ports: ["58001:8000"]
+    depends_on:
+      db-identity: {condition: service_healthy}
+
+  identity-seed:
+    build: ./services/identity
+    environment:
+      IDENTITY_DSN: postgresql://fn:fn@db-identity:5432/identity
+      TECH_DSN: postgresql://fn:fn@db-technicians:5432/technicians
+      WO_DSN: postgresql://fn:fn@db-workorders:5432/workorders
+      SEED_PASSWORD: ${SEED_PASSWORD:-Passw0rd!}
+    volumes:
+      - ./:/out
+    depends_on:
+      db-identity: {condition: service_healthy}
+      db-technicians: {condition: service_healthy}
+      db-workorders: {condition: service_healthy}
+    command: ["node", "dist/seed/seed.cli"]
+    profiles: ["tools"]
+
+  work-orders:
+    build:
+      context: .
+      dockerfile: services/work-orders/Dockerfile
+    environment:
+      WO_DSN: postgresql://fn:fn@db-workorders:5432/workorders
+      RABBIT_URL: amqp://fn:fn@rabbitmq:5672/%2F
+      JWT_SECRET: ${JWT_SECRET:-fn-dev-secret-change-me}
+      SERVICE_NAME: work-orders
+      LEGACY_API_URL: http://api:8000
+      STRANGLER_MODE: ${STRANGLER_MODE:-shadow}
+      STRANGLER_CANARY_PCT: ${STRANGLER_CANARY_PCT:-10}
+      PORT: 8000
+    ports: ["58002-58004:8000"]
+    depends_on:
+      db-workorders: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+
+  payments:
+    build:
+      context: .
+      dockerfile: services/payments/Dockerfile
+    environment:
+      PAYMENTS_DSN: postgresql://fn:fn@db-payments:5432/payments
+      RABBIT_URL: amqp://fn:fn@rabbitmq:5672/%2F
+      JWT_SECRET: ${JWT_SECRET:-fn-dev-secret-change-me}
+      SERVICE_NAME: payments
+      PORT: 8000
+    ports: ["58013-58015:8000"]
+    depends_on:
+      db-payments: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+
+  payments-fund:
+    build:
+      context: .
+      dockerfile: services/payments/Dockerfile
+    environment:
+      PAYMENTS_DSN: postgresql://fn:fn@db-payments:5432/payments
+      IDENTITY_DSN: postgresql://fn:fn@db-identity:5432/identity
+    depends_on:
+      db-payments: {condition: service_healthy}
+      db-identity: {condition: service_healthy}
+    command: ["node", "dist/seed/fund.cli"]
+    profiles: ["tools"]
+
+  # ---------------------------------------------------------------- observability
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=6h
+      - --web.enable-lifecycle
+    ports: ["49090:9090"]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/rules:/etc/prometheus/rules:ro
+      - prom-data:/prometheus
+    depends_on: [rabbitmq]
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: fn
+      GF_SECURITY_ADMIN_PASSWORD: fn
+      GF_USERS_DEFAULT_THEME: dark
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_FEATURE_TOGGLES_ENABLE: publicDashboards
+    ports: ["43000:3000"]
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus]
+
+  pg-exporter-workorders:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://fn:fn@db-workorders:5432/workorders?sslmode=disable"
+    depends_on:
+      db-workorders: {condition: service_healthy}
+
+  pg-exporter-payments:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://fn:fn@db-payments:5432/payments?sslmode=disable"
+    depends_on:
+      db-payments: {condition: service_healthy}
+
+  web-buyer:
+    build: ./web-buyer
+    ports: ["55173:80"]
+    depends_on: [api]
+
+  web-tech:
+    build: ./web-tech
+    ports: ["55174:80"]
+    depends_on: [api]
+
+volumes:
+  prom-data:
+  grafana-data:
+  payments-data:
+  identity-data:
+  rabbit-data:
+  wo-data:
+  tech-data:
+  qdrant-data:
+  hf-cache:

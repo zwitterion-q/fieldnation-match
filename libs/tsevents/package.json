@@ -1,0 +1,9 @@
+{
+  "name": "@fn/tsevents",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": { "build": "tsc" },
+  "dependencies": { "amqplib": "^0.10.5", "uuid": "^11.0.5" },
+  "devDependencies": { "@types/amqplib": "^0.10.6", "@types/node": "^22.10.2", "typescript": "^5.7.2" }
+}

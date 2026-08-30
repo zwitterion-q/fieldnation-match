@@ -1,0 +1,494 @@
+{
+ "uid": "fn-platform",
+ "title": "Field Nation \u2014 Platform",
+ "tags": [
+  "fieldnation",
+  "rabbitmq",
+  "slo"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "5s",
+ "time": {
+  "from": "now-15m",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "type": "row",
+   "title": "Retry ladder",
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   },
+   "collapsed": false
+  },
+  {
+   "type": "timeseries",
+   "title": "Messages held per retry tier",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 1
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum by (queue) (rabbitmq_detailed_queue_messages{queue=~\"q\\\\..*retry\\\\.r[123]\"})",
+     "legendFormat": "{{queue}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   },
+   "description": "Each tier is its own queue with a fixed TTL (5s / 30s / 5m). Tiered queues rather than per-message TTL in one queue, because RabbitMQ only expires messages at the head \u2014 a 5-minute message would block a 5-second one behind it."
+  },
+  {
+   "type": "timeseries",
+   "title": "Parking lot \u2014 exhausted the ladder",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 1
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum by (queue) (rabbitmq_detailed_queue_messages{queue=~\"q\\\\..*parking-lot\"})",
+     "legendFormat": "{{queue}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   },
+   "description": "Nothing consumes these by design. A non-zero value means a message failed three times and needs a human. This is the alert that pages."
+  },
+  {
+   "type": "row",
+   "title": "Message flow",
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 9
+   },
+   "collapsed": false
+  },
+  {
+   "type": "timeseries",
+   "title": "Queue depth by consumer service",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 10
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum by (queue) (rabbitmq_detailed_queue_messages{queue=~\"q\\\\.(payments|workorders|matching|notifications)\\\\.[a-z]+\\\\..*\"})",
+     "legendFormat": "{{queue}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   },
+   "description": "Backlog per (service, event) queue. Depth climbing on one queue while others are flat points at a single slow handler, not a broker problem."
+  },
+  {
+   "type": "timeseries",
+   "title": "Publish / deliver rate",
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 10
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum(rate(rabbitmq_channel_messages_published_total[1m]))",
+     "legendFormat": "published",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "expr": "sum(rate(rabbitmq_channel_messages_delivered_total[1m]))",
+     "legendFormat": "delivered",
+     "refId": "B",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    },
+    {
+     "expr": "sum(rate(rabbitmq_channel_messages_acked_total[1m]))",
+     "legendFormat": "acknowledged",
+     "refId": "C",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {},
+     "unit": "reqps"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "stat",
+   "title": "Consumers attached",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 0,
+    "y": 18
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum(rabbitmq_detailed_queue_consumers{queue=~\"q\\\\.(payments|workorders)\\\\..*\"})",
+     "legendFormat": "consumers",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   },
+   "description": "Zero here with a non-empty queue is the classic silent outage: the broker is healthy, the work is simply not being done."
+  },
+  {
+   "type": "stat",
+   "title": "Unacked (in flight)",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 6,
+    "y": 18
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum(rabbitmq_detailed_queue_messages_unacked)",
+     "legendFormat": "unacked",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "stat",
+   "title": "Total queued",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 12,
+    "y": 18
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum(rabbitmq_detailed_queue_messages)",
+     "legendFormat": "queued",
+     "refId": "A",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "prometheus"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "stat",
+   "title": "Connections",
+   "gridPos": {
+    "h": 4,
+    "w": 6,
+    "x": 18,
+    "y": 18
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "rabbitmq_connections",
+     "legendFormat": "connections",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "row",
+   "title": "Service RED metrics and SLOs",
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 22
+   },
+   "collapsed": false
+  },
+  {
+   "type": "timeseries",
+   "title": "Request rate by service",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 23
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "fn:http_request_rate5m",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {},
+     "unit": "reqps"
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "p95 latency",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 23
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "fn:http_latency_p95",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {},
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "description": "Histogram buckets are clustered around the objective rather than spread evenly \u2014 resolution where the SLO actually is."
+  },
+  {
+   "type": "timeseries",
+   "title": "Error ratio vs 99% SLO",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 23
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "fn:http_error_ratio5m",
+     "legendFormat": "{{service}}",
+     "refId": "A"
+    },
+    {
+     "expr": "0.01",
+     "legendFormat": "SLO threshold",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {},
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "description": "Symptom-based: the ratio of 5xx a user would actually feel, not CPU or memory."
+  },
+  {
+   "type": "row",
+   "title": "Databases",
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 31
+   },
+   "collapsed": true
+  },
+  {
+   "type": "timeseries",
+   "title": "Postgres connections",
+   "gridPos": {
+    "h": 7,
+    "w": 12,
+    "x": 0,
+    "y": 32
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum by (database) (pg_stat_database_numbackends{datname=~\"workorders|payments\"})",
+     "legendFormat": "{{database}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Commits / rollbacks",
+   "gridPos": {
+    "h": 7,
+    "w": 12,
+    "x": 12,
+    "y": 32
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "targets": [
+    {
+     "expr": "sum by (database) (rate(pg_stat_database_xact_commit[1m]))",
+     "legendFormat": "{{database}} commits",
+     "refId": "A"
+    },
+    {
+     "expr": "sum by (database) (rate(pg_stat_database_xact_rollback[1m]))",
+     "legendFormat": "{{database}} rollbacks",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {}
+    },
+    "overrides": []
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Load-test queue depth (lt.work)",
+   "gridPos": {
+    "h": 7,
+    "w": 24,
+    "x": 0,
+    "y": 60
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "prometheus"
+   },
+   "description": "Populated by `make load-burst` / `make load-heavy`. Watch 200k messages queue in ~9s and drain in ~21s across 4 competing consumers.",
+   "targets": [
+    {
+     "expr": "rabbitmq_detailed_queue_messages{queue=\"lt.work\"}",
+     "legendFormat": "lt.work depth",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "custom": {
+      "fillOpacity": 20
+     }
+    },
+    "overrides": []
+   }
+  }
+ ]
+}

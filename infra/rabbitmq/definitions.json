@@ -1,0 +1,1070 @@
+{
+ "rabbit_version": "3.13.0",
+ "rabbitmq_version": "3.13.0",
+ "users": [
+  {
+   "name": "fn",
+   "password": "fn",
+   "tags": "administrator"
+  }
+ ],
+ "vhosts": [
+  {
+   "name": "/"
+  }
+ ],
+ "permissions": [
+  {
+   "user": "fn",
+   "vhost": "/",
+   "configure": ".*",
+   "write": ".*",
+   "read": ".*"
+  }
+ ],
+ "policies": [
+  {
+   "vhost": "/",
+   "name": "poison-pill-guard",
+   "pattern": "^q\\.",
+   "apply-to": "queues",
+   "definition": {
+    "delivery-limit": 5
+   },
+   "priority": 0
+  }
+ ],
+ "exchanges": [
+  {
+   "name": "fieldnation.events",
+   "vhost": "/",
+   "type": "topic",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  },
+  {
+   "name": "fieldnation.commands",
+   "vhost": "/",
+   "type": "direct",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  },
+  {
+   "name": "fieldnation.broadcast",
+   "vhost": "/",
+   "type": "fanout",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  },
+  {
+   "name": "fieldnation.priority",
+   "vhost": "/",
+   "type": "headers",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  },
+  {
+   "name": "fieldnation.retry",
+   "vhost": "/",
+   "type": "topic",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  },
+  {
+   "name": "fieldnation.requeue",
+   "vhost": "/",
+   "type": "topic",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  },
+  {
+   "name": "fieldnation.parking",
+   "vhost": "/",
+   "type": "topic",
+   "durable": true,
+   "auto_delete": false,
+   "internal": false,
+   "arguments": {}
+  }
+ ],
+ "queues": [
+  {
+   "name": "q.payments.workorder.dispatched",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-single-active-consumer": true
+   }
+  },
+  {
+   "name": "q.payments.workorder.accepted",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-single-active-consumer": true
+   }
+  },
+  {
+   "name": "q.payments.workorder.rejected",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-single-active-consumer": true
+   }
+  },
+  {
+   "name": "q.payments.workorder.completed",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-single-active-consumer": true
+   }
+  },
+  {
+   "name": "q.payments.workorder.cancelled",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-single-active-consumer": true
+   }
+  },
+  {
+   "name": "q.payments.retry.r1",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 5000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.payments.retry.r2",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 30000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.payments.retry.r3",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 300000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.payments.parking-lot",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.workorder.dispatched",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.workorder.accepted",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.workorder.rejected",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.workorder.completed",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.workorder.cancelled",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.payment.hold_placed",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.payment.hold_released",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.payment.captured",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.payment.failed",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.retry.r1",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 5000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.notifications.retry.r2",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 30000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.notifications.retry.r3",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 300000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.notifications.parking-lot",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.matching.workorder.dispatched",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.matching.workorder.accepted",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.matching.workorder.rejected",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.matching.retry.r1",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 5000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.matching.retry.r2",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 30000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.matching.retry.r3",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 300000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.matching.parking-lot",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.workorders.payment.hold_placed",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.workorders.payment.hold_released",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.workorders.payment.failed",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.workorders.retry.r1",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 5000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.workorders.retry.r2",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 30000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.workorders.retry.r3",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum",
+    "x-message-ttl": 300000,
+    "x-dead-letter-exchange": "fieldnation.requeue"
+   }
+  },
+  {
+   "name": "q.workorders.parking-lot",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.payments.cmd.payout.execute",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.matching.cmd.taxonomy.reindex",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.payments.broadcast",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.notifications.broadcast",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.matching.broadcast",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.workorders.broadcast",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.identity.broadcast",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.dispatch.urgent",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  },
+  {
+   "name": "q.dispatch.same_day",
+   "vhost": "/",
+   "durable": true,
+   "auto_delete": false,
+   "arguments": {
+    "x-queue-type": "quorum"
+   }
+  }
+ ],
+ "bindings": [
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.payments.workorder.dispatched",
+   "destination_type": "queue",
+   "routing_key": "workorder.dispatched",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.payments.workorder.dispatched",
+   "destination_type": "queue",
+   "routing_key": "payments.*.workorder.dispatched",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.payments.workorder.accepted",
+   "destination_type": "queue",
+   "routing_key": "workorder.accepted",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.payments.workorder.accepted",
+   "destination_type": "queue",
+   "routing_key": "payments.*.workorder.accepted",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.payments.workorder.rejected",
+   "destination_type": "queue",
+   "routing_key": "workorder.rejected",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.payments.workorder.rejected",
+   "destination_type": "queue",
+   "routing_key": "payments.*.workorder.rejected",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.payments.workorder.completed",
+   "destination_type": "queue",
+   "routing_key": "workorder.completed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.payments.workorder.completed",
+   "destination_type": "queue",
+   "routing_key": "payments.*.workorder.completed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.payments.workorder.cancelled",
+   "destination_type": "queue",
+   "routing_key": "workorder.cancelled",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.payments.workorder.cancelled",
+   "destination_type": "queue",
+   "routing_key": "payments.*.workorder.cancelled",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.payments.retry.r1",
+   "destination_type": "queue",
+   "routing_key": "payments.r1.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.payments.retry.r2",
+   "destination_type": "queue",
+   "routing_key": "payments.r2.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.payments.retry.r3",
+   "destination_type": "queue",
+   "routing_key": "payments.r3.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.parking",
+   "vhost": "/",
+   "destination": "q.payments.parking-lot",
+   "destination_type": "queue",
+   "routing_key": "payments.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.dispatched",
+   "destination_type": "queue",
+   "routing_key": "workorder.dispatched",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.dispatched",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.workorder.dispatched",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.accepted",
+   "destination_type": "queue",
+   "routing_key": "workorder.accepted",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.accepted",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.workorder.accepted",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.rejected",
+   "destination_type": "queue",
+   "routing_key": "workorder.rejected",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.rejected",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.workorder.rejected",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.completed",
+   "destination_type": "queue",
+   "routing_key": "workorder.completed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.completed",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.workorder.completed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.cancelled",
+   "destination_type": "queue",
+   "routing_key": "workorder.cancelled",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.workorder.cancelled",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.workorder.cancelled",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.payment.hold_placed",
+   "destination_type": "queue",
+   "routing_key": "payment.hold_placed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.payment.hold_placed",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.payment.hold_placed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.payment.hold_released",
+   "destination_type": "queue",
+   "routing_key": "payment.hold_released",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.payment.hold_released",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.payment.hold_released",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.payment.captured",
+   "destination_type": "queue",
+   "routing_key": "payment.captured",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.payment.captured",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.payment.captured",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.notifications.payment.failed",
+   "destination_type": "queue",
+   "routing_key": "payment.failed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.notifications.payment.failed",
+   "destination_type": "queue",
+   "routing_key": "notifications.*.payment.failed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.notifications.retry.r1",
+   "destination_type": "queue",
+   "routing_key": "notifications.r1.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.notifications.retry.r2",
+   "destination_type": "queue",
+   "routing_key": "notifications.r2.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.notifications.retry.r3",
+   "destination_type": "queue",
+   "routing_key": "notifications.r3.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.parking",
+   "vhost": "/",
+   "destination": "q.notifications.parking-lot",
+   "destination_type": "queue",
+   "routing_key": "notifications.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.matching.workorder.dispatched",
+   "destination_type": "queue",
+   "routing_key": "workorder.dispatched",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.matching.workorder.dispatched",
+   "destination_type": "queue",
+   "routing_key": "matching.*.workorder.dispatched",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.matching.workorder.accepted",
+   "destination_type": "queue",
+   "routing_key": "workorder.accepted",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.matching.workorder.accepted",
+   "destination_type": "queue",
+   "routing_key": "matching.*.workorder.accepted",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.matching.workorder.rejected",
+   "destination_type": "queue",
+   "routing_key": "workorder.rejected",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.matching.workorder.rejected",
+   "destination_type": "queue",
+   "routing_key": "matching.*.workorder.rejected",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.matching.retry.r1",
+   "destination_type": "queue",
+   "routing_key": "matching.r1.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.matching.retry.r2",
+   "destination_type": "queue",
+   "routing_key": "matching.r2.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.matching.retry.r3",
+   "destination_type": "queue",
+   "routing_key": "matching.r3.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.parking",
+   "vhost": "/",
+   "destination": "q.matching.parking-lot",
+   "destination_type": "queue",
+   "routing_key": "matching.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.workorders.payment.hold_placed",
+   "destination_type": "queue",
+   "routing_key": "payment.hold_placed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.workorders.payment.hold_placed",
+   "destination_type": "queue",
+   "routing_key": "workorders.*.payment.hold_placed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.workorders.payment.hold_released",
+   "destination_type": "queue",
+   "routing_key": "payment.hold_released",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.workorders.payment.hold_released",
+   "destination_type": "queue",
+   "routing_key": "workorders.*.payment.hold_released",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.events",
+   "vhost": "/",
+   "destination": "q.workorders.payment.failed",
+   "destination_type": "queue",
+   "routing_key": "payment.failed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.requeue",
+   "vhost": "/",
+   "destination": "q.workorders.payment.failed",
+   "destination_type": "queue",
+   "routing_key": "workorders.*.payment.failed",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.workorders.retry.r1",
+   "destination_type": "queue",
+   "routing_key": "workorders.r1.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.workorders.retry.r2",
+   "destination_type": "queue",
+   "routing_key": "workorders.r2.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.retry",
+   "vhost": "/",
+   "destination": "q.workorders.retry.r3",
+   "destination_type": "queue",
+   "routing_key": "workorders.r3.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.parking",
+   "vhost": "/",
+   "destination": "q.workorders.parking-lot",
+   "destination_type": "queue",
+   "routing_key": "workorders.#",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.commands",
+   "vhost": "/",
+   "destination": "q.payments.cmd.payout.execute",
+   "destination_type": "queue",
+   "routing_key": "payout.execute",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.commands",
+   "vhost": "/",
+   "destination": "q.matching.cmd.taxonomy.reindex",
+   "destination_type": "queue",
+   "routing_key": "taxonomy.reindex",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.broadcast",
+   "vhost": "/",
+   "destination": "q.payments.broadcast",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.broadcast",
+   "vhost": "/",
+   "destination": "q.notifications.broadcast",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.broadcast",
+   "vhost": "/",
+   "destination": "q.matching.broadcast",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.broadcast",
+   "vhost": "/",
+   "destination": "q.workorders.broadcast",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.broadcast",
+   "vhost": "/",
+   "destination": "q.identity.broadcast",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {}
+  },
+  {
+   "source": "fieldnation.priority",
+   "vhost": "/",
+   "destination": "q.dispatch.urgent",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {
+    "x-match": "all",
+    "priority": "urgent"
+   }
+  },
+  {
+   "source": "fieldnation.priority",
+   "vhost": "/",
+   "destination": "q.dispatch.same_day",
+   "destination_type": "queue",
+   "routing_key": "",
+   "arguments": {
+    "x-match": "any",
+    "sla": "same_day",
+    "priority": "urgent"
+   }
+  }
+ ],
+ "parameters": [],
+ "global_parameters": [],
+ "topic_permissions": []
+}

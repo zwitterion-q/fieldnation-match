@@ -1,0 +1,29 @@
+{
+  "type": "workorder.dispatched",
+  "version": 1,
+  "description": "A hirer has dispatched a work order to a specific technician. Starts the accept/reject window.",
+  "envelope": {
+    "id": "uuid",
+    "type": "workorder.dispatched",
+    "version": 1,
+    "occurred_at": "iso8601",
+    "correlation_id": "uuid",
+    "causation_id": "uuid|null",
+    "actor": {
+      "id": "int",
+      "role": "string"
+    }
+  },
+  "payload": {
+    "work_order_id": "int",
+    "technician_id": "int",
+    "hirer_id": "int",
+    "buyer_company": "string",
+    "title": "string",
+    "pay_rate": "decimal",
+    "pay_type": "string",
+    "duration_hours": "decimal",
+    "expires_at": "iso8601",
+    "match_score": "float"
+  }
+}
