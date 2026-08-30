@@ -42,3 +42,5 @@ scrape_configs:
         labels: { service: work-orders }
       - targets: ['payments:8000']
         labels: { service: payments }
+      - targets: ['api:8000']
+        labels: { service: api }

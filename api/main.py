@@ -13,6 +13,7 @@ import psycopg
 from psycopg.rows import dict_row
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
@@ -25,6 +26,21 @@ C_WO, C_TECH = "work_orders", "technicians"
 
 app = FastAPI(title="Field Nation Matching API", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# RED metrics on /metrics, matching what the three NestJS services already
+# expose (services/*/src/auth/metrics.ts). This was the one service missing
+# from the dashboards, which mattered more than it sounds: it is the service
+# doing the expensive work -- the embedding lookup and the kNN query against
+# Qdrant -- so it is where latency actually lives.
+#
+# should_group_status_codes=False keeps 404 distinct from 400. The circuit
+# breaker in work-orders treats them differently (a 404 is a legitimate answer,
+# a 500 is a dependency failure), so collapsing them into "4xx" would hide the
+# exact signal the breaker is built around.
+Instrumentator(
+    should_group_status_codes=False,
+    excluded_handlers=["/metrics", "/health"],
+).instrument(app).expose(app, include_in_schema=False)
 
 
 @lru_cache(maxsize=1)

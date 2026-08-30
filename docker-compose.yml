@@ -245,12 +245,12 @@ services:
 
   web-buyer:
     build: ./web-buyer
-    ports: ["55173:80"]
+    ports: ["55173:8080"]
     depends_on: [api]
 
   web-tech:
     build: ./web-tech
-    ports: ["55174:80"]
+    ports: ["55174:8080"]
     depends_on: [api]
 
 volumes:
