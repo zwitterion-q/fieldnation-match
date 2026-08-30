@@ -1,0 +1,24 @@
+# Remote state, ready to enable. Rename to backend.tf and run
+# `terraform init -migrate-state`.
+#
+# NOT enabled by default, and the reason is the "fully destroyable" requirement
+# rather than an opinion about remote state. The bucket and the lock table are
+# themselves AWS resources. They must exist before this stack can be created,
+# and `terraform destroy` cannot delete the state it is currently reading and
+# writing. So a stack with a remote backend always leaves two resources behind
+# after a complete teardown -- cheap ones, but the verify script would flag
+# them and the claim "nothing is left" would stop being true.
+#
+# For a team this is the right trade and local state is not: local state means
+# one laptop, no locking, and a stack that dies with the machine. Bootstrap the
+# backend once, in its own tiny root module with its own lifecycle, and never
+# destroy it with the stacks that use it.
+terraform {
+  backend "s3" {
+    bucket         = "fieldnation-tfstate-<account-id>"
+    key            = "demo/terraform.tfstate"
+    region         = "ap-southeast-1"
+    dynamodb_table = "fieldnation-tflock"
+    encrypt        = true
+  }
+}

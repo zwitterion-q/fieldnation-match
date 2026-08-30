@@ -219,3 +219,38 @@ clean: ## Remove containers and networks, keep volumes
 
 nuke: ## Remove containers, networks AND all data volumes
 	$(COMPOSE) down -v --remove-orphans
+
+# ============================================================================
+# The second deployment target.
+#
+# Everything above this line runs the platform on this machine with
+# docker-compose. Everything below hands off to deploy/Makefile, which runs the
+# same application on AWS -- EKS, RDS, Amazon MQ, ALB.
+#
+# The two are deliberately separate files rather than one file with an
+# environment flag. A flag would imply they are the same deployment configured
+# differently; they are not. Local trades durability for speed (containers,
+# ephemeral volumes, plaintext AMQP, a hardcoded dev JWT secret). AWS trades
+# speed for the properties you need when other people depend on it (managed
+# datastores, TLS-only AMQP, generated secrets delivered by IRSA, multi-AZ
+# scheduling). Keeping them apart keeps both honest. See DEPLOYMENT.md.
+# ============================================================================
+.PHONY: aws aws-up aws-down aws-status aws-cost aws-validate
+
+aws: ## Show the AWS deployment targets
+	@$(MAKE) -C deploy help
+
+aws-up: ## Deploy to AWS  (~25 min, ~USD 0.27/hour while running)
+	@$(MAKE) -C deploy up
+
+aws-down: ## Destroy the AWS deployment and prove nothing is left billing
+	@$(MAKE) -C deploy down
+
+aws-status: ## Pods, nodes and ingress on AWS
+	@$(MAKE) -C deploy status
+
+aws-cost: ## What the AWS deployment costs while it runs
+	@$(MAKE) -C deploy cost
+
+aws-validate: ## Validate all Terraform and Kubernetes manifests — no AWS account needed
+	@$(MAKE) -C deploy validate

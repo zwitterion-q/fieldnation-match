@@ -1,0 +1,81 @@
+# Validate the deployment on every change, without an AWS account and without
+# spending anything.
+#
+# The point of this pipeline is that infrastructure code is code: it gets
+# formatted, validated, linted and security-scanned like the services do. A
+# `terraform apply` that fails after provisioning an EKS control plane has
+# already cost 20 minutes and real money; almost every cause of that is
+# catchable here, offline.
+name: infra
+
+on:
+  push:
+    paths: ['deploy/**', '.github/workflows/infra.yml']
+  pull_request:
+    paths: ['deploy/**']
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.0
+
+      - name: fmt
+        run: terraform -chdir=deploy/terraform fmt -check -recursive -diff
+
+      - name: init
+        # -backend=false: validation needs the providers and modules, not state,
+        # and not credentials.
+        run: terraform -chdir=deploy/terraform init -backend=false -input=false
+
+      - name: validate
+        run: terraform -chdir=deploy/terraform validate
+
+      - name: tflint
+        uses: terraform-linters/setup-tflint@v4
+      - run: tflint --chdir=deploy/terraform --recursive
+
+      - name: checkov
+        # Security scan. Several findings here are expected and deliberate --
+        # public API endpoint, deletion protection off, no final snapshot --
+        # because this stack is built to be destroyed. They are skipped by ID
+        # with the reason in .checkov.yml rather than silenced globally, so the
+        # exceptions stay visible.
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: deploy/terraform
+          framework: terraform
+          config_file: deploy/.checkov.yml
+          soft_fail: false
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build kustomize overlays
+        run: |
+          kubectl kustomize deploy/k8s/base          > /tmp/base.yaml
+          kubectl kustomize deploy/k8s/overlays/aws  > /tmp/aws.yaml
+          echo "base:    $(grep -c '^kind:' /tmp/base.yaml) objects"
+          echo "overlay: $(grep -c '^kind:' /tmp/aws.yaml) objects"
+
+      - name: kubeconform
+        run: |
+          curl -sSL -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar xzf kubeconform.tar.gz kubeconform
+          # -ignore-missing-schemas covers the ExternalSecret and ScaledObject
+          # CRDs, which have no schema until their operators are installed.
+          ./kubeconform -strict -summary -kubernetes-version 1.31.0 \
+            -ignore-missing-schemas /tmp/aws.yaml
+
+      - name: shellcheck the deploy scripts
+        run: shellcheck deploy/scripts/*.sh

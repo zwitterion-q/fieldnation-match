@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fieldnation
+
+resources:
+  - ../../base
+  - external-secrets.yaml
+  - ingress.yaml
+  - autoscaling.yaml
+
+# The registry is per-account, so it cannot be committed. `make aws-deploy`
+# rewrites IMAGE_PLACEHOLDER and SECRET_PREFIX from terraform output before
+# applying -- see deploy/scripts/render.sh. Kustomize images transformers
+# would be the idiomatic route, but they cannot template the ExternalSecret
+# keys, and having one substitution mechanism beats having two.
+
+commonAnnotations:
+  fieldnation.io/target: aws

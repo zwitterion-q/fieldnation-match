@@ -1,0 +1,72 @@
+# Default-deny, then allow only the paths that exist.
+#
+# Without this, every pod in the cluster can reach every other pod and the
+# whole data tier -- the flat network is the Kubernetes default and it is why
+# one compromised sidecar usually means the whole namespace. The security
+# groups in Terraform stop traffic from outside the cluster; this stops it from
+# inside.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: fieldnation
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: fieldnation
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [api, identity, work-orders, payments, web-buyer, web-tech]
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        # ALB target-type: ip sends traffic from the VPC CIDR directly to pod
+        # IPs, so the node CIDR must be allowed as well.
+        - ipBlock:
+            cidr: 10.42.0.0/16
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-qdrant-from-app
+  namespace: fieldnation
+spec:
+  podSelector:
+    matchLabels:
+      app: qdrant
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: [api, ingest]   # nothing else has any business in the
+                                        # vector index
+      ports:
+        - port: 6333
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: fieldnation
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring

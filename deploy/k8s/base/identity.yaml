@@ -1,0 +1,131 @@
+# Issues JWTs and owns the role matrix. Permissions are flattened into
+# the token at sign-in (services/identity/src/rbac/permissions.ts ROLE_MATRIX),
+# so every other service authorises against a claim rather than calling back
+# here -- identity being slow must never make the platform slow.
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity
+  namespace: fieldnation
+spec:
+  selector:
+    app: identity
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity
+  namespace: fieldnation
+  labels:
+    app: identity
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: identity
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0      # never drop below the declared replica count
+      maxSurge: 1            # during a deploy; consumers keep draining
+  template:
+    metadata:
+      labels:
+        app: identity
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      # Spread replicas across availability zones. Without this the scheduler
+      # is free to put all three work-orders pods on one node, and a single
+      # SPOT reclamation takes the whole consumer group with it.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: identity
+      containers:
+        - name: identity
+          image: IMAGE_PLACEHOLDER/identity:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: IDENTITY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: fieldnation-runtime
+                  key: IDENTITY_DSN
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fieldnation-runtime
+                  key: JWT_SECRET
+            - name: SERVICE_NAME
+              value: "identity"
+            - name: PORT
+              value: "8000"
+          # Readiness gates traffic; liveness restarts a wedged process. They
+          # are separate probes on purpose: a pod that has lost its broker
+          # connection should stop receiving HTTP (not ready) without being
+          # killed and losing its in-flight work (still alive).
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+              # No CPU limit. A CPU limit throttles via CFS quota, which shows
+              # up as latency spikes that look like application bugs. Requests
+              # give the scheduler what it needs; the limit only hurts.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+# A PodDisruptionBudget is what stops a node drain -- a SPOT reclamation, a
+# cluster upgrade -- from evicting every replica at once.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: identity
+  namespace: fieldnation
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: identity

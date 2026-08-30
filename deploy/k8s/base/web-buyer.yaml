@@ -1,0 +1,59 @@
+# Hirer console: post work, pick a technician, dispatch.
+# Static React build served by nginx. Stateless, tiny, and the only workloads
+# here that a user's browser talks to directly -- everything else is reached
+# through them or through the ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-buyer
+  namespace: fieldnation
+spec:
+  selector:
+    app: web-buyer
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-buyer
+  namespace: fieldnation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-buyer
+  template:
+    metadata:
+      labels:
+        app: web-buyer
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101            # nginx-unprivileged
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: web-buyer
+          image: IMAGE_PLACEHOLDER/web-buyer:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

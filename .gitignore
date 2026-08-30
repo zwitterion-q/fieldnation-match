@@ -10,7 +10,11 @@ terraform.tfvars
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+# NOT ignored: .terraform.lock.hcl. The lock file pins provider versions and
+# their checksums, so it is the thing that makes `terraform init` reproducible
+# across machines and in CI. Ignoring it is a common reflex -- it looks like a
+# generated artefact -- and it silently allows a provider minor bump between
+# your apply and CI's.
 crash.log
 
 # dependencies + build output
@@ -30,3 +34,19 @@ venv/
 
 # local scratch
 *.log
+
+# ---- deployment ----
+# Terraform state holds every generated password in plaintext. It must never be
+# committed; `make aws-down` is what disposes of it.
+deploy/terraform/*.tfstate
+deploy/terraform/*.tfstate.*
+deploy/terraform/.terraform/
+deploy/terraform/.terraform.lock.hcl.bak
+deploy/terraform/crash.log
+deploy/terraform/*.tfvars
+deploy/terraform/*.tfvars.json
+!deploy/terraform/example.tfvars
+
+# Manifests rendered with this account's registry and secret ARNs.
+deploy/.rendered/
+deploy/kubeconfig*

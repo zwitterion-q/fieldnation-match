@@ -1,0 +1,95 @@
+# ============================================================================
+# Scaling a queue consumer on CPU is the wrong signal, and it is the default
+# everyone reaches for.
+#
+# A work-orders pod blocked on RabbitMQ is nearly idle: it is waiting on I/O,
+# not burning CPU. So when a burst arrives and the queue depth climbs to
+# 20,000, CPU stays flat and an HPA scales nothing. The backlog is the symptom
+# and the backlog is what should drive the decision.
+#
+# KEDA reads queue depth straight from the broker and scales on it. The
+# loadtest/harness.py burst scenario -- 21,186 msg/s published, 9,425 msg/s
+# drained -- is what this is sized against: a sustained gap between those two
+# numbers is exactly the condition that should add consumers.
+#
+# The HPA below it is kept for api, where CPU genuinely is the constraint:
+# that path does vector maths (ingest/embedding.py weighted_centroid) and is
+# compute-bound, not I/O-bound. Two workloads, two signals, on purpose.
+# ============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keda-rabbitmq
+  namespace: fieldnation
+type: Opaque
+stringData:
+  # Populated by ESO at deploy time; see external-secrets.yaml. Placeholder
+  # here only so kustomize can build without a cluster.
+  host: ""
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: rabbitmq
+  namespace: fieldnation
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: fieldnation-runtime
+      key: RABBIT_URL
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: work-orders
+  namespace: fieldnation
+spec:
+  scaleTargetRef:
+    name: work-orders
+  minReplicaCount: 3      # never below the competing-consumer group size --
+                          # scaling to zero would break the retry ladder's
+                          # timing guarantees
+  maxReplicaCount: 12
+  pollingInterval: 15
+  cooldownPeriod: 120     # long enough that a burst finishing does not
+                          # immediately strand in-flight deliveries
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0     # react to a backlog immediately
+        scaleDown:
+          stabilizationWindowSeconds: 300   # but leave slowly; flapping
+                                            # consumers rebalance queues and
+                                            # cost more than they save
+  triggers:
+    - type: rabbitmq
+      authenticationRef:
+        name: rabbitmq
+      metadata:
+        protocol: amqp
+        queueName: wo.assignment.dispatched
+        mode: QueueLength
+        value: "200"     # ~200 messages of backlog per consumer. Below this,
+                         # the existing pods will drain it faster than a new
+                         # pod can start and connect.
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: fieldnation
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

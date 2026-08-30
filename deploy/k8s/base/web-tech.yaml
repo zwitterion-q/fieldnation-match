@@ -1,0 +1,59 @@
+# Technician console: accept or reject, submit for approval.
+# Static React build served by nginx. Stateless, tiny, and the only workloads
+# here that a user's browser talks to directly -- everything else is reached
+# through them or through the ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-tech
+  namespace: fieldnation
+spec:
+  selector:
+    app: web-tech
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-tech
+  namespace: fieldnation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-tech
+  template:
+    metadata:
+      labels:
+        app: web-tech
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101            # nginx-unprivileged
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: web-tech
+          image: IMAGE_PLACEHOLDER/web-tech:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

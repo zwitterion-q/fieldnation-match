@@ -1,0 +1,44 @@
+# One ALB, path-routed to the two consoles and the API.
+#
+# `group.name` is the load-bearing annotation: without it the controller
+# provisions a *separate* ALB per Ingress -- three ALBs, three sets of ENIs,
+# three lots of $17/month, and three things to orphan on destroy. With it, all
+# rules land on one shared ALB.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fieldnation
+  namespace: fieldnation
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip        # straight to pod IPs,
+                                                     # skipping the kube-proxy
+                                                     # hop and giving the ALB
+                                                     # real per-pod health
+    alb.ingress.kubernetes.io/group.name: fieldnation
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
+    alb.ingress.kubernetes.io/tags: Project=fieldnation,AutoDestroy=true
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend: { service: { name: api, port: { number: 8000 } } }
+          - path: /id
+            pathType: Prefix
+            backend: { service: { name: identity, port: { number: 8000 } } }
+          - path: /wo
+            pathType: Prefix
+            backend: { service: { name: work-orders, port: { number: 8000 } } }
+          - path: /pay
+            pathType: Prefix
+            backend: { service: { name: payments, port: { number: 8000 } } }
+          - path: /tech
+            pathType: Prefix
+            backend: { service: { name: web-tech, port: { number: 80 } } }
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: web-buyer, port: { number: 80 } } }

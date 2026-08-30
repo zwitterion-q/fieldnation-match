@@ -1,0 +1,83 @@
+# Qdrant holds the vector index the matching engine queries -- 1,882 vectors
+# per entity, plus a collection per taxonomy surface form. See
+# ingest/pipeline.py index_taxonomy() and ingest/embedding.py weighted_centroid().
+#
+# StatefulSet rather than Deployment because the index is state with identity:
+# qdrant-0 must reattach to the same volume across restarts, or the collections
+# are gone and every match query returns nothing.
+#
+# The volumeClaimTemplate creates an EBS volume that Terraform never sees. That
+# is precisely the resource deploy/scripts/pre-destroy.sh deletes before
+# `terraform destroy`; without that step the volume survives the cluster and
+# bills indefinitely.
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: fieldnation
+spec:
+  clusterIP: None          # headless: stable DNS per pod, qdrant-0.qdrant
+  selector:
+    app: qdrant
+  ports:
+    - name: http
+      port: 6333
+      targetPort: 6333
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  namespace: fieldnation
+spec:
+  serviceName: qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.12.4
+          ports:
+            - containerPort: 6333
+              name: http
+          readinessProbe:
+            tcpSocket:
+              port: 6333
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: storage
+              mountPath: /qdrant/storage
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+        labels:
+          fieldnation.io/ephemeral: "true"   # pre-destroy.sh looks for this
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: gp3
+        resources:
+          requests:
+            storage: 10Gi

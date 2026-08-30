@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The base is deliberately target-agnostic: it describes the application, not
+# where it runs. Everything AWS-specific -- the registry, the secret store, the
+# ALB, KEDA -- lives in overlays/aws. That separation is what makes the two
+# deployment targets genuinely two targets rather than one with flags.
+
+namespace: fieldnation
+
+resources:
+  - namespace.yaml
+  - storageclass.yaml
+  - networkpolicy.yaml
+  - qdrant.yaml
+  - db-bootstrap.yaml
+  - identity.yaml
+  - work-orders.yaml
+  - payments.yaml
+  - api.yaml
+  - web-buyer.yaml
+  - web-tech.yaml
+
+# `labels` rather than the deprecated `commonLabels`, and deliberately without
+# includeSelectors: a Deployment's selector is immutable, so folding a label
+# into it turns the next apply into a delete-and-recreate.
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: fieldnation-match

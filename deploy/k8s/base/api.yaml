@@ -1,0 +1,128 @@
+# FastAPI. The matching engine and the explainability endpoint
+# (api/matching.py explain()). Python because this is the data-heavy path:
+# vector maths, kNN against Qdrant, and the scoring model.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: fieldnation
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: fieldnation
+  labels:
+    app: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0      # never drop below the declared replica count
+      maxSurge: 1            # during a deploy; consumers keep draining
+  template:
+    metadata:
+      labels:
+        app: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      # Spread replicas across availability zones. Without this the scheduler
+      # is free to put all three work-orders pods on one node, and a single
+      # SPOT reclamation takes the whole consumer group with it.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: api
+      containers:
+        - name: api
+          image: IMAGE_PLACEHOLDER/api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: WO_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: fieldnation-runtime
+                  key: WO_DSN
+            - name: TECH_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: fieldnation-runtime
+                  key: TECH_DSN
+            - name: QDRANT_URL
+              value: "http://qdrant:6333"
+          # Readiness gates traffic; liveness restarts a wedged process. They
+          # are separate probes on purpose: a pod that has lost its broker
+          # connection should stop receiving HTTP (not ready) without being
+          # killed and losing its in-flight work (still alive).
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+              # No CPU limit. A CPU limit throttles via CFS quota, which shows
+              # up as latency spikes that look like application bugs. Requests
+              # give the scheduler what it needs; the limit only hurts.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+# A PodDisruptionBudget is what stops a node drain -- a SPOT reclamation, a
+# cluster upgrade -- from evicting every replica at once.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  namespace: fieldnation
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: api

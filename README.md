@@ -12,6 +12,20 @@ into one weighted centroid → index in Qdrant → match both directions.**
 
 ## Running it
 
+Two deployment targets, same application code:
+
+```bash
+make up          # local — docker compose, ~3 min, free
+make aws-up      # aws   — EKS + RDS + Amazon MQ, ~25 min, ~$0.27/hour
+make aws-down    # tears the AWS one down and proves nothing is left billing
+```
+
+`make aws-validate` checks all the Terraform and every Kubernetes manifest
+offline — no AWS account needed. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for
+what differs between the two and why.
+
+The manual local path:
+
 ```bash
 docker compose up -d db-workorders db-technicians qdrant   # infra
 docker compose run --rm ingest python -m pipeline --all     # build the data

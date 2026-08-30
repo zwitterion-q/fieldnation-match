@@ -1,0 +1,21 @@
+# Checkov exceptions, each with the reason it is deliberate.
+#
+# The alternative -- soft_fail on everything -- makes the scan decorative. These
+# are the findings this stack accepts, and nothing else.
+skip-check:
+  # Destroyability. The whole point of the deployment is that `make aws-down`
+  # leaves nothing behind; each of these would leave something.
+  - CKV_AWS_16    # RDS encryption at rest -- actually enabled; false positive
+                  # on the module indirection
+  - CKV_AWS_157   # RDS multi-AZ: off at sizing=minimal, on at production
+  - CKV_AWS_293   # RDS deletion protection: off on purpose (variables.tf)
+  - CKV_AWS_118   # RDS enhanced monitoring: not free on t4g.micro
+  - CKV_AWS_353   # RDS performance insights: same
+
+  # Demo-scoped network exposure.
+  - CKV_AWS_39    # EKS public API endpoint. Restricted with LOCKDOWN=1;
+                  # documented in variables.tf public_access_cidrs.
+
+  # Logging cost.
+  - CKV_AWS_338   # CloudWatch retention >= 1 year. Set to 3 days deliberately:
+                  # log groups that outlive the stack are a billing orphan.

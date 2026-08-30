@@ -1,0 +1,22 @@
+# EKS ships gp2 as the default StorageClass. gp3 is cheaper per GB and lets you
+# set throughput independently of size, so nothing here uses gp2.
+#
+# reclaimPolicy: Delete is deliberate and is a destroyability decision. Retain
+# is the safer production default -- it keeps the volume when the PVC goes --
+# but "keeps the volume" is another way of saying "keeps billing", and this
+# stack is built to disappear completely.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer   # bind in the AZ the pod lands in;
+                                          # binding early strands a pod when
+                                          # the volume is in the wrong AZ
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+  encrypted: "true"

@@ -1,0 +1,54 @@
+# RDS provisions exactly one database. The other three are created here, by a
+# Job that runs inside the cluster -- which is the only place with network
+# reach to the instance, since the security group allows nothing else.
+#
+# Idempotent by construction: every statement is guarded, so re-running the Job
+# after a redeploy is a no-op rather than an error. That matters because this
+# runs on every `make aws-deploy`.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-bootstrap
+  namespace: fieldnation
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 600     # clean itself up; a finished Job that
+                                   # lingers blocks the next apply with an
+                                   # immutable-field error
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          env:
+            - name: WO_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: fieldnation-runtime
+                  key: WO_DSN
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              # Connect to the instance's default database to create the rest.
+              ADMIN=$(echo "$WO_DSN" | sed 's#/workorders?#/fieldnation?#')
+              for db in workorders identity payments technicians; do
+                if psql "$ADMIN" -tAc "SELECT 1 FROM pg_database WHERE datname='$db'" | grep -q 1; then
+                  echo "  $db already exists"
+                else
+                  echo "  creating $db"
+                  psql "$ADMIN" -c "CREATE DATABASE \"$db\""
+                fi
+              done
+              echo "databases ready"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
