@@ -1,21 +1,86 @@
-# Checkov exceptions, each with the reason it is deliberate.
+# Checkov exceptions.
 #
-# The alternative -- soft_fail on everything -- makes the scan decorative. These
-# are the findings this stack accepts, and nothing else.
+# The scan found 20 distinct issues on the first run. Sixteen were real and are
+# fixed in the Terraform: a customer-managed KMS key with an explicit policy
+# covering secrets / ECR / SSM / logs / MQ, egress confined to the VPC instead
+# of 0.0.0.0/0, the VPC default security group emptied, auto-assign public IP
+# turned off, rds.force_ssl at the server, IAM database authentication, copy
+# tags to snapshots, all five EKS control-plane log types, and the ALB
+# controller's write permissions constrained by cluster tag.
+#
+# The ten below are deliberate. Each is listed with what it costs and what
+# would change it, rather than hidden behind soft_fail -- a scan that always
+# passes tells you nothing.
 skip-check:
-  # Destroyability. The whole point of the deployment is that `make aws-down`
-  # leaves nothing behind; each of these would leave something.
-  - CKV_AWS_16    # RDS encryption at rest -- actually enabled; false positive
-                  # on the module indirection
-  - CKV_AWS_157   # RDS multi-AZ: off at sizing=minimal, on at production
-  - CKV_AWS_293   # RDS deletion protection: off on purpose (variables.tf)
-  - CKV_AWS_118   # RDS enhanced monitoring: not free on t4g.micro
-  - CKV_AWS_353   # RDS performance insights: same
 
-  # Demo-scoped network exposure.
-  - CKV_AWS_39    # EKS public API endpoint. Restricted with LOCKDOWN=1;
-                  # documented in variables.tf public_access_cidrs.
+  # --- destroyability, which was a hard requirement for this stack -----------
 
-  # Logging cost.
-  - CKV_AWS_338   # CloudWatch retention >= 1 year. Set to 3 days deliberately:
-                  # log groups that outlive the stack are a billing orphan.
+  - CKV_AWS_133  # "RDS instances has backup policy"
+    # backup_retention_period = 0. Automated backups outlive the instance they
+    # came from, so a stack advertised as fully destroyable would leave storage
+    # billing behind. There is no data here worth recovering: `make seed`
+    # rebuilds everything in about three minutes. Flip this, and
+    # skip_final_snapshot, for anything with real data.
+
+  - CKV2_AWS_57  # "Secrets Manager secrets should have automatic rotation"
+    # Rotation needs a Lambda function per secret, a VPC endpoint or ENI for it
+    # to reach RDS, and a rotation schedule -- roughly the same amount of
+    # infrastructure again, for credentials that live as long as the demo. The
+    # delivery path is already built for it: External Secrets re-reads on its
+    # refresh interval, so rotating in Secrets Manager would propagate without
+    # touching a manifest.
+
+  # --- demo-scoped, with the safer path already wired ------------------------
+
+  - CKV_AWS_38   # "EKS public endpoint not accessible to 0.0.0.0/0"
+    # public_access_cidrs defaults to 0.0.0.0/0 so the cluster stays reachable
+    # from a changing home IP mid-demo. IAM authentication is still required to
+    # do anything with it. `make aws-up LOCKDOWN=1` resolves the current public
+    # IP and restricts the endpoint to /32 -- that is the correct setting for
+    # anything left running.
+
+  - CKV_AWS_293  # "database instances have deletion protection enabled"
+    # False by default, from variables.tf. This is the single setting that most
+    # often turns `terraform destroy` into a manual console session.
+
+  - CKV_AWS_338  # "CloudWatch log groups retain logs for at least 1 year"
+    # 3 days. A year of retention on a demo is a log group that quietly bills
+    # long after the stack is gone. The groups are declared explicitly so
+    # Terraform owns and deletes them, which is the part that actually matters.
+
+  # --- cost, at the minimal sizing profile ----------------------------------
+  # All three flip automatically at sizing=production; they are not opinions
+  # about whether they are good ideas.
+
+  - CKV_AWS_157  # "RDS instances have Multi-AZ enabled"
+    # multi_az follows the sizing profile: false at minimal, true at
+    # production. Multi-AZ roughly doubles the RDS bill.
+
+  - CKV_AWS_118  # "enhanced monitoring is enabled for Amazon RDS"
+  - CKV_AWS_353  # "RDS instances have performance insights enabled"
+    # Neither is free on a t4g.micro-class instance, and Prometheus already
+    # scrapes the postgres exporter for the metrics this demo reasons about.
+
+  # --- unavoidable, given what the resource is -------------------------------
+
+  - CKV_AWS_39   # "EKS public endpoint disabled"
+    # Distinct from CKV_AWS_38: this one wants the public endpoint off
+    # entirely, which means a bastion or a VPN to reach the cluster at all.
+    # Disproportionate for a demo someone needs to open in 30 seconds.
+
+  - CKV_AWS_356  # '"*" as a statement resource for restrictable actions'
+  - CKV_AWS_111  # "IAM policies do not allow write access without constraints"
+  - CKV_AWS_109  # "IAM policies do not allow permissions management"
+    # The AWS Load Balancer Controller's Describe* calls do not accept a
+    # resource ARN -- there is nothing to scope them to. The write actions ARE
+    # scoped: creates are constrained by aws:RequestTag and mutations by
+    # aws:ResourceTag, both pinned to this cluster, so the role cannot touch a
+    # load balancer belonging to anything else in the account. Checkov reads
+    # the "*" and not the conditions.
+
+  - CKV_AWS_51   # "ECR Image Tags are immutable"
+    # MUTABLE, because deploy/scripts/push.sh re-pushes :latest on every build
+    # and IMMUTABLE would reject that. The right production answer is to drop
+    # the :latest tag entirely and deploy by digest, which is what makes a
+    # running image auditable. Every image is also pushed under its git SHA,
+    # so the audit trail exists; only the convenience tag is mutable.

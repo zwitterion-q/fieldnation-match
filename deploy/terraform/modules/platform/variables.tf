@@ -4,6 +4,11 @@ variable "cluster_name" { type = string }
 variable "oidc_provider_arn" { type = string }
 variable "oidc_issuer" { type = string }
 
+variable "kms_key_arn" {
+  type        = string
+  description = "Shared platform CMK — encrypts the ECR repositories."
+}
+
 variable "services" {
   type        = list(string)
   description = "One ECR repository per deployable image."

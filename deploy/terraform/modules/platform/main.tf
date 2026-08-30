@@ -39,6 +39,14 @@ resource "aws_ecr_repository" "svc" {
   force_delete = var.force_destroy_repos
 
   image_scanning_configuration { scan_on_push = true }
+
+  # ECR encrypts with an AWS-managed key by default. Using the platform CMK
+  # puts image layers under the same key policy and the same CloudTrail record
+  # as the secrets and the database.
+  encryption_configuration {
+    encryption_type = "KMS"
+    kms_key         = var.kms_key_arn
+  }
 }
 
 # Images pile up fast when every `make aws-push` writes a new digest. Untagged
@@ -117,20 +125,51 @@ data "aws_iam_policy_document" "alb" {
     resources = ["*"] # Describe calls do not accept resource ARNs
   }
 
+  # Creating a load balancer or a security group has no ARN to scope to -- the
+  # resource does not exist yet -- so these actions must be on "*". What can be
+  # constrained is the request: the controller may only create resources that
+  # carry this cluster's tag.
   statement {
-    sid    = "Provision"
+    sid    = "Create"
     effect = "Allow"
     actions = [
-      "elasticloadbalancing:Create*", "elasticloadbalancing:Delete*",
-      "elasticloadbalancing:Modify*", "elasticloadbalancing:Register*",
-      "elasticloadbalancing:Deregister*", "elasticloadbalancing:Set*",
-      "elasticloadbalancing:AddTags", "elasticloadbalancing:RemoveTags",
-      "elasticloadbalancing:AddListenerCertificates",
-      "ec2:CreateSecurityGroup", "ec2:DeleteSecurityGroup",
-      "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress",
-      "ec2:CreateTags", "ec2:DeleteTags",
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:CreateTargetGroup",
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:CreateRule",
+      "elasticloadbalancing:AddTags",
+      "ec2:CreateSecurityGroup",
+      "ec2:CreateTags",
     ]
     resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = [var.cluster_name]
+    }
+  }
+
+  # Mutating an existing resource does have an ARN, so these are constrained by
+  # the tag already on it. The practical effect: this role cannot delete a load
+  # balancer belonging to anything else in the account.
+  statement {
+    sid    = "Mutate"
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:Delete*", "elasticloadbalancing:Modify*",
+      "elasticloadbalancing:Register*", "elasticloadbalancing:Deregister*",
+      "elasticloadbalancing:Set*", "elasticloadbalancing:RemoveTags",
+      "elasticloadbalancing:AddListenerCertificates",
+      "ec2:DeleteSecurityGroup",
+      "ec2:AuthorizeSecurityGroupIngress", "ec2:RevokeSecurityGroupIngress",
+      "ec2:DeleteTags",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = [var.cluster_name]
+    }
   }
 }
 

@@ -17,9 +17,12 @@ resource "aws_eks_cluster" "main" {
     public_access_cidrs = var.api_allowed_cidrs
   }
 
-  # Control-plane logs. Without these an audit question has no answer, and
-  # turning them on after an incident is too late.
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+  # All five control-plane log types. Without these an audit question has no
+  # answer, and turning them on after an incident is too late. The two usually
+  # omitted -- controllerManager and scheduler -- are the ones that explain why
+  # a pod never got placed, which is exactly the question you have at 2am.
+  # Retention is 3 days, so the cost is negligible.
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
   encryption_config {
     provider { key_arn = aws_kms_key.eks.arn }
@@ -39,6 +42,7 @@ resource "aws_eks_cluster" "main" {
 resource "aws_cloudwatch_log_group" "cluster" {
   name              = "/aws/eks/${var.cluster_name}/cluster"
   retention_in_days = var.log_retention_days
+  kms_key_id        = aws_kms_key.eks.arn
 }
 
 resource "aws_kms_key" "eks" {
@@ -46,7 +50,50 @@ resource "aws_kms_key" "eks" {
   deletion_window_in_days = 7 # minimum allowed; a longer window means the
   # key lingers and bills after destroy
   enable_key_rotation = true
+  policy              = data.aws_iam_policy_document.eks_kms.json
 }
+
+# An explicit key policy, because the KMS default grants the whole account
+# access to the key. This one names the two principals that legitimately need
+# it: the account root, so the key stays administrable, and the EKS service.
+data "aws_iam_policy_document" "eks_kms" {
+  statement {
+    sid    = "AccountAdmin"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  # Both principals, and the second is easy to miss: the log group is encrypted
+  # with this key, so CloudWatch Logs must be able to use it. Without this the
+  # log group fails to create with an opaque InvalidParameterException, and the
+  # cluster creation fails behind it.
+  statement {
+    sid    = "EKSAndLogs"
+    effect = "Allow"
+    principals {
+      type = "Service"
+      identifiers = [
+        "eks.amazonaws.com",
+        "logs.${data.aws_region.current.name}.amazonaws.com",
+      ]
+    }
+    actions   = ["kms:Encrypt", "kms:Decrypt", "kms:DescribeKey", "kms:CreateGrant"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 resource "aws_kms_alias" "eks" {
   name          = "alias/${var.cluster_name}-eks"

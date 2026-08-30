@@ -27,17 +27,32 @@ resource "aws_vpc" "main" {
   tags                 = { Name = "${var.name}-vpc" }
 }
 
+# Every VPC ships with a default security group that allows all traffic between
+# anything attached to it. Nothing here uses it -- but it exists, it is
+# permissive, and a resource created later without an explicit SG lands in it.
+# Emptying it turns that accident into a connection failure instead of an open
+# path.
+resource "aws_default_security_group" "main" {
+  vpc_id = aws_vpc.main.id
+  # No ingress or egress blocks: both are emptied.
+  tags = { Name = "${var.name}-default-DO-NOT-USE" }
+}
+
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags   = { Name = "${var.name}-igw" }
 }
 
 resource "aws_subnet" "public" {
-  count                   = length(local.azs)
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 4, count.index)
-  availability_zone       = local.azs[count.index]
-  map_public_ip_on_launch = true
+  count             = length(local.azs)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(var.vpc_cidr, 4, count.index)
+  availability_zone = local.azs[count.index]
+  # Nothing launches into the public subnets. Nodes are private; the NAT
+  # gateway and the ALB both carry explicitly-allocated addresses. Leaving
+  # auto-assign on would silently give a public IP to anything that ever did
+  # land here.
+  map_public_ip_on_launch = false
   tags = {
     Name = "${var.name}-public-${local.azs[count.index]}"
     # These two tags are load-bearing, not decorative. Without them the AWS Load
@@ -114,6 +129,7 @@ resource "aws_route_table_association" "private" {
 resource "aws_cloudwatch_log_group" "flow" {
   name              = "/aws/vpc/${var.name}"
   retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_key_arn
 }
 
 resource "aws_flow_log" "main" {

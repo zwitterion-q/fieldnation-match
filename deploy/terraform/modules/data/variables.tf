@@ -1,4 +1,14 @@
 variable "name" { type = string }
+variable "vpc_cidr" {
+  type        = string
+  description = "Egress from the data tier is confined to this, not 0.0.0.0/0."
+}
+
+variable "kms_key_arn" {
+  type        = string
+  description = "Shared platform CMK — secrets, SSM, logs and the MQ broker."
+}
+
 variable "vpc_id" { type = string }
 variable "private_subnet_ids" { type = list(string) }
 variable "source_security_group" {

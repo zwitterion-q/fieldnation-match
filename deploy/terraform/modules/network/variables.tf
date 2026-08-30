@@ -12,3 +12,8 @@ variable "log_retention_days" {
   type    = number
   default = 3
 }
+
+variable "kms_key_arn" {
+  type        = string
+  description = "Shared platform CMK — encrypts the VPC flow log group."
+}

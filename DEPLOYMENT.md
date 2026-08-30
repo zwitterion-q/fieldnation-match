@@ -166,7 +166,7 @@ network, no cost.
 ## Cost
 
 `make aws-cost` prints the current figure. At `sizing=minimal`, roughly
-**USD 195/month**, of which:
+**USD 197/month**, of which:
 
 - **73** EKS control plane — fixed, unavoidable, and the single largest line
 - **43** NAT gateway — already reduced from 86 by `single_nat = true`
@@ -174,8 +174,13 @@ network, no cost.
 - **19** Amazon MQ `mq.t3.micro`
 - **18** ALB
 - **18** RDS `db.t4g.micro` + 20 GB gp3
+- **2** two customer-managed KMS keys
 
 The stack bills whether or not it serves a request. A weekend left running is
-about USD 13. `sizing=production` is roughly 340/month and exists to show what
+about USD 13. After teardown the two KMS keys sit in their mandatory 7-day
+deletion window and still bill — about USD 0.50 of residue, which
+`verify-destroyed.sh` reports rather than glossing over.
+
+`sizing=production` is roughly 340/month and exists to show what
 the same code looks like when the trades go the other way — on-demand nodes,
 NAT per AZ, clustered MQ, multi-AZ RDS.

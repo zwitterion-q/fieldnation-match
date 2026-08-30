@@ -33,13 +33,17 @@ row "EBS volumes"       "$(q ec2 describe-volumes --filters "Name=tag:Project,Va
 row "Unattached volumes" "$(q ec2 describe-volumes --filters Name=status,Values=available --query 'length(Volumes)' --output text)"
 row "S3 buckets"        "$(q s3api list-buckets --query "length(Buckets[?contains(Name,'$PROJECT')])" --output text)"
 row "Log groups"        "$(q logs describe-log-groups --log-group-name-prefix "/aws/eks/$PROJECT" --query 'length(logGroups)' --output text)"
-row "KMS keys pending"  "$(q kms list-keys --query 'length(Keys)' --output text)"
+# Counted separately because a key pending deletion is expected here, unlike
+# everything above it.
+row "KMS keys (pending)"  "$(q kms list-keys --query 'length(Keys)' --output text)"
 
 echo
 if [ "$found" = "0" ]; then
   echo "  ✓ nothing left — the account is clean"
 else
   echo "  ⚠ resources above are still present and may still be billing."
-  echo "    KMS keys always linger for their deletion window (7 days) — that is"
-  echo "    expected and free. Anything else should be investigated."
+  echo "    KMS keys linger for their mandatory deletion window (7 days, the"
+  echo "    minimum AWS allows) and DO still bill at ~USD 1/month each — about"
+  echo "    USD 0.50 of residue for the two keys. That is expected."
+  echo "    Anything else should be investigated."
 fi

@@ -43,12 +43,89 @@ locals {
   databases = ["workorders", "identity", "payments", "technicians"]
 }
 
+# ---------------------------------------------------------------- kms -------
+# One customer-managed key for everything outside EKS: Secrets Manager, ECR,
+# the SSM parameter, CloudWatch log groups, and the Amazon MQ broker.
+#
+# The AWS-managed default keys would encrypt all of these at rest already. The
+# difference a CMK makes is control: an explicit key policy saying who may
+# decrypt, key rotation you own, and a single CloudTrail record of every
+# decrypt call against your data. That is the difference between "encrypted"
+# and "encrypted, and you can prove who read it".
+#
+# EKS keeps its own key (modules/eks) because its purpose is different --
+# envelope encryption of Kubernetes secrets, with a lifecycle tied to the
+# cluster rather than to the data tier.
+#
+# Cost: USD 1/month per key, plus a 7-day mandatory deletion window after
+# destroy during which the key still bills. Two keys, so roughly USD 0.50 of
+# residue after a teardown. verify-destroyed.sh reports them rather than
+# pretending they are gone.
+resource "aws_kms_key" "platform" {
+  description             = "${local.name} platform data encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms.json
+}
+
+resource "aws_kms_alias" "platform" {
+  name          = "alias/${local.name}-platform"
+  target_key_id = aws_kms_key.platform.key_id
+}
+
+data "aws_caller_identity" "me" {}
+
+data "aws_iam_policy_document" "kms" {
+  # Without this first statement the key is unusable and unmanageable: KMS does
+  # not fall back to IAM, so a key whose policy omits the account root cannot
+  # be administered by anyone, including the person who created it.
+  statement {
+    sid    = "AccountAdmin"
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.me.account_id}:root"]
+    }
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  # The services that hold data encrypted with this key need to use it. Scoped
+  # by service principal and by the account that called them, so the key cannot
+  # be used from another account even if its ARN leaks.
+  statement {
+    sid    = "ServiceUse"
+    effect = "Allow"
+    principals {
+      type = "Service"
+      identifiers = [
+        "secretsmanager.amazonaws.com",
+        "ssm.amazonaws.com",
+        "logs.${var.region}.amazonaws.com",
+        "mq.amazonaws.com",
+        "rds.amazonaws.com",
+      ]
+    }
+    actions = [
+      "kms:Encrypt", "kms:Decrypt", "kms:ReEncrypt*",
+      "kms:GenerateDataKey*", "kms:DescribeKey", "kms:CreateGrant",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.me.account_id]
+    }
+  }
+}
+
 module "network" {
   source = "./modules/network"
 
   name               = local.name
   cluster_name       = local.name
   vpc_cidr           = var.vpc_cidr
+  kms_key_arn        = aws_kms_key.platform.arn
   single_nat         = local.size.single_nat
   log_retention_days = var.log_retention_days
 }
@@ -78,6 +155,8 @@ module "data" {
   private_subnet_ids    = module.network.private_subnet_ids
   source_security_group = module.eks.cluster_security_group_id
 
+  vpc_cidr      = var.vpc_cidr
+  kms_key_arn   = aws_kms_key.platform.arn
   db_instance   = local.size.db_instance
   db_storage    = local.size.db_storage
   db_multi_az   = local.size.db_multi_az
@@ -99,6 +178,7 @@ module "platform" {
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_issuer       = module.eks.oidc_issuer
 
+  kms_key_arn         = aws_kms_key.platform.arn
   services            = local.services
   secret_arns         = [module.data.db_secret_arn, module.data.mq_secret_arn, module.data.app_secret_arn]
   force_destroy_repos = var.force_destroy_buckets

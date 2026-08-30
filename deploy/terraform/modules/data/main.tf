@@ -42,6 +42,7 @@ resource "random_password" "mq" {
 
 resource "aws_secretsmanager_secret" "db" {
   name                    = "${var.name}/postgres"
+  kms_key_id              = var.kms_key_arn
   recovery_window_in_days = 0 # destroyability: the default 30-day recovery
   # window keeps the secret name reserved, so a
   # re-deploy fails with "already scheduled for
@@ -61,6 +62,7 @@ resource "aws_secretsmanager_secret_version" "db" {
 
 resource "aws_secretsmanager_secret" "mq" {
   name                    = "${var.name}/rabbitmq"
+  kms_key_id              = var.kms_key_arn
   recovery_window_in_days = 0
 }
 
@@ -86,6 +88,7 @@ resource "random_password" "jwt" {
 
 resource "aws_secretsmanager_secret" "app" {
   name                    = "${var.name}/app"
+  kms_key_id              = var.kms_key_arn
   recovery_window_in_days = 0
 }
 
@@ -120,10 +123,14 @@ resource "aws_security_group" "db" {
   }
 
   egress {
+    # A database has no business dialling the internet. Confining egress to the
+    # VPC means a compromised instance cannot exfiltrate outward, and costs
+    # nothing -- RDS reaches CloudWatch and S3 over the AWS network.
+    description = "VPC-internal only"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = { Name = "${var.name}-db" }
@@ -137,6 +144,16 @@ resource "aws_db_parameter_group" "main" {
   parameter {
     name  = "log_min_duration_statement"
     value = "500"
+  }
+
+  # Reject any non-TLS connection at the server. The DSNs already say
+  # sslmode=require, but that is the client promising to use TLS -- this is the
+  # server refusing to accept anything else, which is the half that holds when
+  # a client is misconfigured.
+  parameter {
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 
   lifecycle { create_before_destroy = true }
@@ -154,6 +171,7 @@ resource "aws_db_instance" "main" {
   # wedge the demo
   storage_type      = "gp3"
   storage_encrypted = true
+  kms_key_id        = var.kms_key_arn
 
   db_name  = "fieldnation"
   username = "fnadmin"
@@ -176,6 +194,15 @@ resource "aws_db_instance" "main" {
   backup_retention_period  = 0 # no automated backups on a demo; also means
   # nothing survives the instance
 
+  # Lets a human authenticate with a 15-minute IAM token instead of the master
+  # password. The services still use the password from Secrets Manager --
+  # refreshing a token inside a connection pool is real work, not a flag.
+  iam_database_authentication_enabled = true
+
+  # Without this a snapshot carries no tags, and verify-destroyed.sh -- which
+  # searches by tag -- cannot see an orphaned one.
+  copy_tags_to_snapshot = true
+
   apply_immediately            = true
   auto_minor_version_upgrade   = true
   performance_insights_enabled = false # not free on t4g.micro-class
@@ -193,9 +220,13 @@ resource "aws_db_instance" "main" {
 # and the bootstrap Job in the platform layer does it instead. See
 # deploy/k8s/jobs/db-bootstrap.yaml.
 resource "aws_ssm_parameter" "databases" {
-  name  = "/${var.name}/databases"
-  type  = "StringList"
-  value = join(",", var.databases)
+  name = "/${var.name}/databases"
+  # SecureString rather than StringList. The value is only a list of database
+  # names, but "it is not sensitive today" is how parameters end up holding
+  # something sensitive tomorrow with no one revisiting the type.
+  type   = "SecureString"
+  key_id = var.kms_key_arn
+  value  = join(",", var.databases)
 }
 
 # -------------------------------------------------------------- rabbitmq ----
@@ -225,10 +256,11 @@ resource "aws_security_group" "mq" {
   }
 
   egress {
+    description = "VPC-internal only"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
   }
 
   tags = { Name = "${var.name}-mq" }
@@ -269,6 +301,11 @@ resource "aws_mq_broker" "main" {
   auto_minor_version_upgrade = true
   apply_immediately          = true
 
+  encryption_options {
+    kms_key_id        = var.kms_key_arn
+    use_aws_owned_key = false
+  }
+
   tags = { Name = var.name }
 }
 
@@ -280,4 +317,5 @@ resource "aws_mq_broker" "main" {
 resource "aws_cloudwatch_log_group" "mq" {
   name              = "/aws/amazonmq/broker/${var.name}/general"
   retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_key_arn
 }

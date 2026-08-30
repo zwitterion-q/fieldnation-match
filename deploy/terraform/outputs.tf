@@ -28,14 +28,14 @@ output "kubeconfig_command" {
 # 730h; excludes data transfer and anything the load test drives.
 output "estimated_monthly_usd" {
   value = var.sizing == "minimal" ? join("", [
-    "~USD 195/month while running  |  ",
+    "~USD 197/month while running  |  ",
     "EKS control plane 73 (fixed, the single largest line and unavoidable), ",
     "2x t3.medium SPOT 23, ",
     "NAT gateway 43 (single-NAT already applied; per-AZ would be 86), ",
     "Amazon MQ mq.t3.micro 19, ",
     "ALB 18, ",
     "RDS db.t4g.micro + 20GB gp3 18, ",
-    "Secrets Manager / ECR / logs ~1",
+    "2 KMS keys 2, Secrets Manager / ECR / logs ~1",
     ]) : join("", [
     "~USD 340/month while running  |  ",
     "EKS 73, 3x t3.large on-demand 88, 2x NAT 86, ",
