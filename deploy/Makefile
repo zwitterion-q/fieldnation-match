@@ -59,6 +59,9 @@ fmt: ## Format all Terraform
 	@terraform fmt -recursive terraform/
 
 validate: init ## Validate Terraform and every Kubernetes manifest, no cluster needed
+	@# -check, not a silent rewrite: CI runs the same command, so a local
+	@# `make validate` that quietly reformatted would still fail the pipeline.
+	@terraform -chdir=terraform fmt -check -recursive -diff
 	@$(TF) validate
 	@kubectl kustomize k8s/overlays/aws \
 	  | kubeconform -strict -summary -kubernetes-version 1.31.0 -ignore-missing-schemas
