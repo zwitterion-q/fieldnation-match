@@ -184,9 +184,12 @@ Things a reviewer should know without having to find them:
   `work-orders` updates their status; `api` reads. One schema, three services,
   no contract — the bounded context there is nominal. The fix is the CQRS
   machinery already built for assignments, applied one level up.
-- **No schema registry.** Events carry a `version` field and compatibility rests
-  on discipline. `libs/pyevents` reimplements the TypeScript contract by hand
-  with nothing detecting drift, and event sourcing makes any drift permanent.
+- **Event contracts are documented, not enforced.** `contracts/events/` has ten
+  of them — envelope and payload per event type — but they are hand-written
+  documentation, not JSON Schema. Nothing validates against them at publish or
+  consume time and nothing in CI checks drift, while `libs/pyevents`
+  reimplements the same contract in Python by hand. Event sourcing makes any
+  drift permanent.
 - **No distributed tracing.** Correlation IDs give log correlation, which
   answers *what happened* but not *where the time went*.
 - **The outbox relay polls at one second**, which is a latency floor nothing
