@@ -10,7 +10,7 @@ PROJECT_DIR := $(shell pwd)
 
 .DEFAULT_GOAL := help
 .PHONY: help bootstrap check-deps up down restart build rebuild infra apps seed ingest reset logs ps status \
-        health creds open rabbit topology psql-wo psql-tech qdrant-collections clean nuke check-docker
+        health creds open rabbit topology psql-wo psql-tech psql-identity psql-pay qdrant-collections clean nuke check-docker
 
 # ---------------------------------------------------------------- meta ------
 help: ## Show this help
@@ -120,6 +120,12 @@ psql-wo: ## psql shell into the work-orders database
 
 psql-tech: ## psql shell into the technicians database
 	$(COMPOSE) exec db-technicians psql -U fn -d technicians
+
+psql-identity: ## psql shell into the identity database
+	@$(COMPOSE) exec db-identity psql -U fn -d identity
+
+psql-pay: ## psql shell into the payments database (the ledger)
+	@$(COMPOSE) exec db-payments psql -U fn -d payments
 
 creds: ## Print seeded login credentials
 	@cat CREDENTIALS.md 2>/dev/null || echo "  CREDENTIALS.md not generated yet — run 'make seed'"
