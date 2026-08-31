@@ -169,6 +169,9 @@ load-retry: ## Messages that always fail — watch r1 -> r2 -> r3 escalate
 load-sustained: ## Steady 400/s for 90s with live consumers
 	@$(LOAD) sustained --rate 400 --duration 90 --workers 4 --work-ms 1
 
+load-breaker: ## Trip the circuit breaker for real — stops the dependency, watch Grafana
+	@./scripts/breaker-drill.sh
+
 load-purge: ## Clear every load-test queue
 	@$(LOAD) purge
 

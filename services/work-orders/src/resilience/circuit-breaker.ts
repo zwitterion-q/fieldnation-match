@@ -1,4 +1,34 @@
 import { Logger } from '@nestjs/common';
+import { Gauge, Counter } from 'prom-client';
+import { registry } from '../auth/metrics';
+
+/**
+ * A breaker that nobody can see is a breaker nobody trusts. These three series
+ * are what turn "it protects us" into something you can point at on a graph
+ * while it is happening.
+ */
+const breakerState = new Gauge({
+  name: 'fn_breaker_state',
+  help: 'Circuit breaker state — 0 closed, 1 half_open, 2 open',
+  labelNames: ['breaker'],
+  registers: [registry],
+});
+
+const breakerCalls = new Counter({
+  name: 'fn_breaker_calls_total',
+  help: 'Calls through the breaker, by outcome',
+  labelNames: ['breaker', 'outcome'],   // success | failure | short_circuited
+  registers: [registry],
+});
+
+const breakerTransitions = new Counter({
+  name: 'fn_breaker_transitions_total',
+  help: 'Breaker state transitions',
+  labelNames: ['breaker', 'to'],
+  registers: [registry],
+});
+
+const STATE_VALUE: Record<BreakerState, number> = { closed: 0, half_open: 1, open: 2 };
 
 export type BreakerState = 'closed' | 'open' | 'half_open';
 
@@ -33,13 +63,19 @@ export class CircuitBreaker {
     private threshold = 5,        // consecutive failures before opening
     private cooldownMs = 10_000,  // how long to stay open before probing
     private probeSuccesses = 2,   // successes needed to close again
-  ) {}
+  ) {
+    breakerState.set({ breaker: this.name }, STATE_VALUE.closed);
+  }
 
   getState() {
     // Lazily transition out of open so no background timer is needed.
     if (this.state === 'open' && Date.now() - this.openedAt >= this.cooldownMs) {
       this.transition('half_open');
     }
+    // Re-publish every read. The lazy transition means the gauge would
+    // otherwise go stale between calls, and a stale gauge on a dashboard is
+    // worse than no gauge.
+    breakerState.set({ breaker: this.name }, STATE_VALUE[this.state]);
     return this.state;
   }
 
@@ -56,6 +92,8 @@ export class CircuitBreaker {
     this.log.warn(`breaker "${this.name}": ${this.state} → ${to}`);
     this.stats.state_changes.push({ from: this.state, to, at: new Date().toISOString() });
     this.state = to;
+    breakerState.set({ breaker: this.name }, STATE_VALUE[to]);
+    breakerTransitions.inc({ breaker: this.name, to });
     if (to === 'open') { this.openedAt = Date.now(); this.successes = 0; }
     if (to === 'closed') { this.failures = 0; this.successes = 0; }
     if (to === 'half_open') { this.successes = 0; this.probing = false; }
@@ -68,6 +106,7 @@ export class CircuitBreaker {
 
     if (state === 'open') {
       this.stats.short_circuited++;
+      breakerCalls.inc({ breaker: this.name, outcome: 'short_circuited' });
       if (fallback) return fallback();
       throw new Error(`circuit "${this.name}" is open`);
     }
@@ -77,6 +116,7 @@ export class CircuitBreaker {
     if (state === 'half_open') {
       if (this.probing) {
         this.stats.short_circuited++;
+        breakerCalls.inc({ breaker: this.name, outcome: 'short_circuited' });
         if (fallback) return fallback();
         throw new Error(`circuit "${this.name}" is half-open and already probing`);
       }
@@ -85,9 +125,11 @@ export class CircuitBreaker {
 
     try {
       const out = await fn();
+      breakerCalls.inc({ breaker: this.name, outcome: 'success' });
       this.onSuccess();
       return out;
     } catch (e) {
+      breakerCalls.inc({ breaker: this.name, outcome: 'failure' });
       this.onFailure();
       if (fallback) return fallback();
       throw e;
