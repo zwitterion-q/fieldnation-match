@@ -212,6 +212,9 @@ demo: check-docker ## Reset transactional state for a clean demo (keeps work ord
 	   DELETE FROM accounts; DELETE FROM outbox; DELETE FROM processed_messages;" >/dev/null
 	@$(COMPOSE) exec -T db-workorders psql -U fn -d workorders -qc \
 	  "DELETE FROM outbox; DELETE FROM assignments; DELETE FROM processed_messages; \
+	   DELETE FROM saga_steps; DELETE FROM saga_instances; \
+	   DELETE FROM event_store; TRUNCATE assignment_projection; \
+	   UPDATE projection_checkpoint SET last_sequence=0, events_applied=0; \
 	   UPDATE work_orders SET status='open' WHERE status='assigned';" >/dev/null
 	@for q in $$(docker exec fieldnation-match-rabbitmq-1 rabbitmqctl -q list_queues name 2>/dev/null | grep '^q\.'); do \
 	   curl -s -u fn:fn -X DELETE "http://localhost:45672/api/queues/%2F/$$q/contents" >/dev/null; done
