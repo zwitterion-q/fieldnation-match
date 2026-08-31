@@ -9,7 +9,7 @@ OBS         := prometheus grafana pg-exporter-workorders pg-exporter-payments
 PROJECT_DIR := $(shell pwd)
 
 .DEFAULT_GOAL := help
-.PHONY: help up down restart build rebuild infra apps seed ingest reset logs ps status \
+.PHONY: help bootstrap check-deps up down restart build rebuild infra apps seed ingest reset logs ps status \
         health creds open rabbit topology psql-wo psql-tech qdrant-collections clean nuke check-docker
 
 # ---------------------------------------------------------------- meta ------
@@ -20,6 +20,12 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
+
+bootstrap: ## First run on a new machine — installs everything, then starts it
+	@./install.sh
+
+check-deps: ## Check this machine has every dependency, change nothing
+	@./install.sh --check
 
 check-docker: ## Fail fast with a useful message if the daemon is down
 	@docker info >/dev/null 2>&1 || { \
