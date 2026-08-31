@@ -146,17 +146,25 @@ Point at **trial balance**.
 **The separation-of-duty moment.** Do this one in the terminal, because
 "the button is hidden" and "the API refuses" are different claims:
 
+Go through the console's own origin (`:55173`), **not** a service port.
+`work-orders` and `payments` publish port *ranges* so they can scale past one
+replica, and Docker picks freely within the range — a hardcoded `58013` will be
+connection-refused on a day it landed on `58015`, which looks like the API is
+down rather than correctly refusing. `make ports` prints the live assignment.
+
 ```bash
 # technician tries to approve their own work
-curl -s -X POST localhost:58002/assignments/<ID>/approve \
+curl -s -X POST localhost:55173/wo/assignments/<ID>/approve \
   -H "Authorization: Bearer $TECH_TOKEN"
 # → 403 missing permission(s): workorder:approve
 
 # hirer tries to pay a technician
-curl -s -X POST localhost:58003/payouts -H "Authorization: Bearer $HIRER_TOKEN" \
-  -H 'content-type: application/json' -d '{"technician_id":47}'
+curl -s -X POST localhost:55173/pay/payouts -H "Authorization: Bearer $HIRER_TOKEN" \
+  -H 'content-type: application/json' -d '{"technician_id":40}'
 # → 403 missing permission(s): payment:release
 ```
+
+Both verified live: 403 with exactly those messages.
 
 > "A hirer can approve work but cannot release funds. A technician cannot pay
 > themselves. That is in the permission matrix, not in a code comment — and it is

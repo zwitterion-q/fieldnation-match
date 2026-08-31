@@ -82,6 +82,9 @@ reset: check-docker ## Destroy all data and rebuild from scratch
 	@$(MAKE) --no-print-directory status
 
 # ---------------------------------------------------------------- inspect --
+ports: ## Print the LIVE host port for every service (ranges move between runs)
+	@python3 scripts/ports.py
+
 ps: ## Container status
 	@$(COMPOSE) ps --format 'table {{.Service}}\t{{.Status}}\t{{.Ports}}'
 
