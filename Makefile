@@ -10,7 +10,7 @@ PROJECT_DIR := $(shell pwd)
 
 .DEFAULT_GOAL := help
 .PHONY: help bootstrap check-deps up down restart build rebuild infra apps seed ingest reset logs ps status \
-        health creds open rabbit topology psql-wo psql-tech psql-identity psql-pay qdrant-collections clean nuke check-docker
+        demo-data health creds open rabbit topology psql-wo psql-tech psql-identity psql-pay qdrant-collections clean nuke check-docker
 
 # ---------------------------------------------------------------- meta ------
 help: ## Show this help
@@ -205,6 +205,9 @@ sagas: check-docker ## Show every saga instance and its steps
 sac: check-docker ## Show which queues enforce ordering via Single Active Consumer
 	@docker exec fieldnation-match-rabbitmq-1 rabbitmqctl -q list_queues name arguments consumers 2>/dev/null \
 	  | grep single-active | sed 's/^/    /'
+
+demo-data: check-docker ## Build rich demo state — every status, a 3-offer work order, a full ledger (~2 min)
+	@python3 scripts/demo-data.py
 
 demo: check-docker ## Reset transactional state for a clean demo (keeps work orders + accounts)
 	@$(COMPOSE) exec -T db-payments psql -U fn -d payments -qc \
